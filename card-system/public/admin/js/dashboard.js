@@ -171,7 +171,8 @@ function renderRecent(list) {
 async function load() {
   if (!(await requireAuth())) return;
   window.__openNewProject = () => openNewProjectModal(load);
-  document.getElementById("pageTitle").textContent = `${greeting()}，管理员`;
+  const u = await ensureUser();
+  document.getElementById("pageTitle").textContent = `${greeting()}，${displayName(u)}`;
 
   const now = new Date();
   document.getElementById("lastUpdated").textContent =

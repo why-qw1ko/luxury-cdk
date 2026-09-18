@@ -1,0 +1,13 @@
+# Node
+node_modules/
+
+# 运行时生成的数据库（含 WAL/SHM 临时文件）
+card-system/data/*.db
+card-system/data/*.db-wal
+card-system/data/*.db-shm
+
+# 日志
+*.log
+
+# 系统
+.DS_Store
