@@ -60,28 +60,22 @@ function render() {
       : "");
   const rows = document.getElementById("claimRows");
   if (!list.length) {
-    rows.innerHTML = `<tr><td colspan="7" class="weak" style="text-align:center;padding:40px">暂无符合条件的记录</td></tr>`;
+    rows.innerHTML = `<tr><td colspan="8" class="weak" style="text-align:center;padding:40px">暂无符合条件的记录</td></tr>`;
     return;
   }
   rows.innerHTML = list.map((c) => `
     <tr>
       <td class="num weak">${c.id}</td>
-      <td>${esc(c.project_name)}</td>
-      <td class="payload">${esc(c.claim_code)}</td>
+      <td class="limit-sm"><div class="clamp-2" title="${esc(c.project_name)}">${esc(c.project_name)}</div></td>
+      <td class="payload" style="overflow-wrap:anywhere">${esc(c.claim_code)}</td>
       <td><span class="tag">${esc(TYPE_LABEL[c.content_type] || c.content_type)}</span></td>
-      <td style="max-width:260px">
-        <div class="row" style="gap:8px;align-items:flex-start">
-          <span class="payload" style="flex:1;min-width:0;word-break:break-all">${esc(c.content_payload)}</span>
-          <button class="btn sm" data-copy="${esc(c.content_payload)}">复制</button>
-        </div>
-      </td>
+      <td class="payload limit" title="${esc(c.content_payload)}">${esc(c.content_payload)}</td>
       <td class="num">${esc(c.ip || "—")}</td>
       <td class="num weak">${fullTime(c.claimed_at)}</td>
+      <td class="col-actions">${copyBtn(c.content_payload)}</td>
     </tr>`).join("");
 
-  rows.querySelectorAll("[data-copy]").forEach((btn) => {
-    btn.onclick = async () => { toast((await copyText(btn.dataset.copy)) ? "已复制" : "复制失败"); };
-  });
+  bindCopy(rows);
 }
 
 load();

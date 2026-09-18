@@ -162,6 +162,18 @@ export function batchRouter() {
     const total = db
       .prepare(`SELECT COUNT(*) AS c FROM contents WHERE batch_id = ?`)
       .get(batch.id).c;
+    // 支持按内容模糊搜索与状态过滤
+    const kw = String(req.query.keyword || "").trim();
+    const status = String(req.query.status || "all");
+    const where = ["ct.batch_id = ?"];
+    const params = [batch.id];
+    if (kw) { where.push(`ct.payload LIKE ?`); params.push(`%${kw}%`); }
+    if (status === "used") where.push(`ct.status = 'used'`);
+    else if (status === "available") where.push(`ct.status = 'available'`);
+    const whereSql = where.join(" AND ");
+    const filtered = db
+      .prepare(`SELECT COUNT(*) AS c FROM contents ct WHERE ${whereSql}`)
+      .get(...params).c;
     const rows = db
       .prepare(
         `SELECT ct.id, ct.type, ct.payload, ct.status, ct.created_at, ct.used_at,
@@ -170,11 +182,15 @@ export function batchRouter() {
          FROM contents ct
          LEFT JOIN claims cl ON cl.content_id = ct.id
          LEFT JOIN claim_codes bc ON bc.content_id = ct.id
-         WHERE ct.batch_id = ?
-         ORDER BY ct.id DESC LIMIT ?`
+         WHERE ${whereSql}
+         ORDER BY ct.id DESC LIMIT ? OFFSET ?`
       )
-      .all(batch.id, pageLimit(req.query));
-    res.json({ ok: true, total, list: rows });
+      .all(
+        ...params,
+        Math.min(Number(req.query.limit) || DEFAULT_PAGE, MAX_PAGE),
+        Math.max(0, Number(req.query.offset) || 0)
+      );
+    res.json({ ok: true, total, filtered, list: rows, hasMore: filtered > rows.length + (Number(req.query.offset) || 0) });
   });
 
   // 批量导入分发内容（项目内自动去重）
@@ -248,23 +264,41 @@ export function batchRouter() {
     const db = getDb();
     const batch = ownedBatch(db, req.params.id, req);
     if (!batch) return res.status(404).json({ ok: false, message: "项目不存在或无权访问" });
-    const total = db
+      const total = db
       .prepare(`SELECT COUNT(*) AS c FROM claim_codes WHERE batch_id = ?`)
       .get(batch.id).c;
+    // 支持按 CDK / 绑定内容模糊搜索，以及按状态过滤、翻页
+    const kw = String(req.query.keyword || "").trim();
+    const status = String(req.query.status || "all");
+    const where = ["cc.batch_id = ?"];
+    const params = [batch.id];
+    if (kw) {
+      where.push(`(cc.code LIKE ? OR COALESCE(ct.payload, '') LIKE ?)`);
+      params.push(`%${normalizeClaimCode(kw)}%`, `%${kw}%`);
+    }
+    if (status === "available") where.push(`cc.status = 'available'`);
+    else if (status === "claimed") where.push(`cc.status = 'claimed'`);
+    else if (status === "disabled") where.push(`cc.status = 'disabled'`);
+    const whereSql = where.join(" AND ");
+    const filtered = db
+      .prepare(`SELECT COUNT(*) AS c FROM claim_codes cc LEFT JOIN contents ct ON ct.id = cc.content_id WHERE ${whereSql}`)
+      .get(...params).c;
     const rows = db
       .prepare(
         `SELECT cc.id, cc.code, cc.status, cc.created_at, cc.claimed_at,
                 COALESCE(ct.payload, '') AS bound_payload
          FROM claim_codes cc
          LEFT JOIN contents ct ON ct.id = cc.content_id
-         WHERE cc.batch_id = ?
-         ORDER BY cc.id DESC LIMIT ?`
+         WHERE ${whereSql}
+         ORDER BY cc.id DESC LIMIT ? OFFSET ?`
       )
-      .all(batch.id, pageLimit(req.query));
+      .all(...params, Math.min(Number(req.query.limit) || DEFAULT_PAGE, MAX_PAGE), Math.max(0, Number(req.query.offset) || 0));
     res.json({
       ok: true,
       total,
+      filtered,
       list: rows.map((x) => ({ ...x, code_display: formatClaimCode(x.code) })),
+      hasMore: filtered > rows.length + (Number(req.query.offset) || 0),
     });
   });
 
@@ -297,6 +331,7 @@ export function batchRouter() {
 
     const insert = db.prepare(`INSERT INTO claim_codes (batch_id, code, content_id) VALUES (?, ?, ?)`);
     let inserted = 0;
+    const created = [];
     const tx = db.transaction(() => {
       let guard = 0;
       while (inserted < count) {
@@ -311,6 +346,7 @@ export function batchRouter() {
         try {
           insert.run(batch.id, code, contentId);
           inserted++;
+          created.push(code);
         } catch (e) {
           if (!/UNIQUE constraint failed/.test(e.message)) throw e;
         }
@@ -329,7 +365,12 @@ export function batchRouter() {
       throw e;
     }
 
-    res.json({ ok: true, inserted, stats: batchStats(batch.id) });
+    res.json({
+      ok: true,
+      inserted,
+      codes: created.map((c) => ({ code: c, display: formatClaimCode(c) })),
+      stats: batchStats(batch.id),
+    });
   });
 
   // 手动导入已有的 CDK（全局去重）
@@ -367,6 +408,7 @@ export function batchRouter() {
     const insert = db.prepare(`INSERT INTO claim_codes (batch_id, code, content_id) VALUES (?, ?, ?)`);
     let inserted = 0;
     let duplicate = raw.length - unique.length - invalid;
+    const created = [];
 
     const tx = db.transaction((list) => {
       for (const c of list) {
@@ -380,6 +422,7 @@ export function batchRouter() {
         try {
           insert.run(batch.id, c, contentId);
           inserted++;
+          created.push(c);
         } catch (e) {
           if (/UNIQUE constraint failed/.test(e.message)) duplicate++;
           else throw e;
@@ -402,8 +445,23 @@ export function batchRouter() {
       inserted,
       duplicate,
       invalid,
+      codes: created.map((c) => ({ code: c, display: formatClaimCode(c) })),
       stats: batchStats(batch.id),
     });
+  });
+
+  // CDK 纯文本清单（用于「复制全部」，默认只取未使用的）
+  r.get("/:id/claim-codes/text", (req, res) => {
+    const db = getDb();
+    const batch = ownedBatch(db, req.params.id, req);
+    if (!batch) return res.status(404).json({ ok: false, message: "项目不存在或无权访问" });
+    const status = String(req.query.status || "available");
+    const where = status === "all" ? "" : `AND status = '${status === "claimed" ? "claimed" : "available"}'`;
+    const rows = db
+      .prepare(`SELECT code FROM claim_codes WHERE batch_id = ? ${where} ORDER BY id`)
+      .all(batch.id);
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.send(rows.map((r2) => formatClaimCode(r2.code)).join("\n"));
   });
 
   // 导出 CDK 清单（用于对外分发）

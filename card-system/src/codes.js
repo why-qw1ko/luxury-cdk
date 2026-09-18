@@ -16,10 +16,15 @@ export function normalizeClaimCode(v) {
   return String(v ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
-/** 展示格式：标准 16 位码分组为 XXXX-XXXX-XXXX-XXXX */
+/**
+ * 展示格式：每 4 位一组。
+ * 之前只对「恰好 16 位」分组，于是带前缀的 CDK（19 位起）会退化成一条无分隔的长串，
+ * 既不好读也很难手抄。这里改为任意长度都按 4 位分组。
+ * 注意：横杠只是显示效果，claim 入口会 normalize 掉，不影响比对。
+ */
 export function formatClaimCode(code) {
   const c = normalizeClaimCode(code);
-  return /^[A-Z0-9]{16}$/.test(c) ? c.match(/.{4}/g).join("-") : c;
+  return c.length <= 4 ? c : c.match(/.{1,4}/g).join("-");
 }
 
 /** 生成随机 CDK（crypto 强随机 + randomInt 避免模偏差） */

@@ -19,14 +19,14 @@
     </header>
 
     <div class="card">
-      <div class="row between" style="margin-bottom:12px">
-        <div class="row" id="filterRow"></div>
-        <span class="weak" id="totalLabel" style="font-size:12.5px"></span>
+      <div class="row between" style="margin-bottom:12px;gap:12px;flex-wrap:wrap">
+        <div class="row" id="filterRow" style="gap:8px;flex-wrap:wrap"></div>
+        <span class="weak" id="totalLabel" style="font-size:12.5px;min-width:0;overflow-wrap:anywhere"></span>
       </div>
       <div class="table-wrap">
         <table class="tbl">
-          <thead><tr><th>ID</th><th>项目</th><th>领取 CDK</th><th>类型</th><th>发放内容</th><th>领取IP</th><th>领取时间</th></tr></thead>
-          <tbody id="claimRows"><tr><td colspan="7" class="weak" style="text-align:center">加载中…</td></tr></tbody>
+          <thead><tr><th>ID</th><th>项目</th><th>领取 CDK</th><th>类型</th><th>发放内容</th><th>领取IP</th><th>领取时间</th><th style="text-align:right">操作</th></tr></thead>
+          <tbody id="claimRows"><tr><td colspan="8" class="weak" style="text-align:center">加载中…</td></tr></tbody>
         </table>
       </div>
     </div>

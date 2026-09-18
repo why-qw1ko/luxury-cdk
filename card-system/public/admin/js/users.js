@@ -24,8 +24,8 @@ async function load() {
     return `
     <tr>
       <td>
-        <div style="font-weight:500">${esc(u.username)}${isMe ? ' <span class="tag solid">我</span>' : ""}</div>
-        <div class="weak" style="font-size:12px">${esc(u.name)}</div>
+        <div class="clamp-2" style="font-weight:500" title="${esc(u.username)}">${esc(u.username)}${isMe ? ' <span class="tag solid">我</span>' : ""}</div>
+        <div class="weak trunc" style="font-size:12px" title="${esc(u.name)}">${esc(u.name)}</div>
       </td>
       <td>${isAdmin ? `<span class="badge" style="background:var(--accent-soft);color:var(--accent)">管理员</span>` : `<span class="badge off">普通用户</span>`}</td>
       <td>${u.status === "active" ? `<span class="badge ok"><span class="dot"></span>正常</span>` : `<span class="badge warn"><span class="dot"></span>已封禁</span>`}</td>
@@ -34,7 +34,7 @@ async function load() {
       <td class="num">${u.codes}</td>
       <td class="num">${u.claimed}</td>
       <td class="num weak" style="font-size:12px">${fullTime(u.created_at)}</td>
-      <td style="text-align:right;white-space:nowrap">
+      <td class="col-actions">
         ${isAdmin ? `<span class="weak" style="font-size:12px">不可操作</span>`
           : ` <button class="btn sm" data-id="${u.id}" data-act="${u.status === "active" ? "ban" : "unban"}">${u.status === "active" ? "封禁" : "解封"}</button>
               <button class="btn sm" data-id="${u.id}" data-act="pwd">重置密码</button>

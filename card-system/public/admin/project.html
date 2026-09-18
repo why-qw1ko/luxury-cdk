@@ -9,11 +9,14 @@
 <body data-page="project">
   <div class="page">
     <header class="page-header">
-      <div>
+      <div style="min-width:0">
         <h1 class="page-title" id="pageTitle">管理人员，管理员</h1>
         <p class="page-sub">创建项目、导入分发内容、生成领取 CDK 并跟踪发放情况</p>
       </div>
-      <button class="btn primary" id="newProject">+ 新建项目</button>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <input class="input" id="projectSearch" placeholder="搜索项目名称 / 标签" style="width:220px"/>
+        <button class="btn primary" id="newProject">+ 新建项目</button>
+      </div>
     </header>
 
     <div class="card" style="padding:12px 20px">

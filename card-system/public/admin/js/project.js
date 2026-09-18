@@ -7,6 +7,9 @@ function fullTime(s) { if (!s) return "—"; const d = new Date(String(s).replac
 const TYPE_LABEL = { code: "兑换码", link: "链接", text: "文本" };
 const MAX_GENERATE = 5000;
 
+let allBatches = [];
+let projectKeyword = "";
+
 async function loadList() {
   if (!(await requireAuth())) return;
   window.__openNewProject = () => openNewProjectModal(loadList);
@@ -15,19 +18,46 @@ async function loadList() {
   document.getElementById("newProject").onclick = () => openNewProjectModal(loadList);
 
   const res = await api("/api/batches");
+  allBatches = res.list;
+
+  const search = document.getElementById("projectSearch");
+  if (search && !search.dataset.bound) {
+    search.dataset.bound = "1";
+    let timer = null;
+    search.addEventListener("input", () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => { projectKeyword = search.value; renderProjectRows(); }, 200);
+    });
+  }
+
+  renderProjectRows();
+}
+
+function renderProjectRows() {
   const rows = document.getElementById("projectRows");
-  if (!res.list.length) {
+  if (!allBatches.length) {
     rows.innerHTML = `<tr><td colspan="9" class="weak" style="text-align:center;padding:40px">还没有项目，点击右上角"新建项目"开始</td></tr>`;
     return;
   }
-  rows.innerHTML = res.list.map((b) => `
+  const kw = projectKeyword.trim().toLowerCase();
+  const list = kw
+    ? allBatches.filter((b) =>
+        (b.name + " " + (b.tags || []).join(" ") + " " + (b.description || "")).toLowerCase().includes(kw))
+    : allBatches;
+
+  if (!list.length) {
+    rows.innerHTML = `<tr><td colspan="9" class="weak" style="text-align:center;padding:40px">没有匹配「${esc(projectKeyword)}」的项目</td></tr>`;
+    return;
+  }
+
+  rows.innerHTML = list.map((b) => `
     <tr>
-      <td>
-        <div style="font-weight:500">${esc(b.name)}</div>
+      <td style="min-width:180px;max-width:340px">
+        <div class="clamp-2" style="font-weight:500" title="${esc(b.name)}">${esc(b.name)}</div>
         <div class="weak" style="font-size:12px">一码一用 · ${b.bind_mode === "bound" ? "一码一内容绑定" : "动态发放"}</div>
       </td>
-      <td>
-        ${b.tags.length ? `<div class="tag-stack">${b.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>` : `<span class="weak">—</span>`}
+      <td style="max-width:220px">
+        ${b.tags.length ? `<div class="tag-stack">${b.tags.map((t) => `<span class="tag" title="${esc(t)}">${esc(t)}</span>`).join("")}</div>` : `<span class="weak">—</span>`}
       </td>
       <td class="num" style="font-weight:600">${fmt(b.remaining)}</td>
       <td class="num weak" style="font-size:12.5px">${fmt(b.codeAvailable)} / ${fmt(b.codeTotal)}</td>
@@ -35,7 +65,7 @@ async function loadList() {
       <td class="num">${fmt(b.codeClaimed)}</td>
       <td>${batchStatusBadge(b)}</td>
       <td class="num weak" style="font-size:12px">${fullTime(b.created_at)}</td>
-      <td style="text-align:right;white-space:nowrap">
+      <td class="col-actions">
         <button class="btn sm" data-id="${b.id}" data-act="detail">查看</button>
         <button class="btn sm danger" data-id="${b.id}" data-act="del">删除</button>
       </td>
@@ -43,7 +73,8 @@ async function loadList() {
 
   rows.querySelectorAll("[data-act]").forEach((btn) => {
     btn.onclick = () => {
-      const b = res.list.find((x) => x.id == btn.dataset.id);
+      const b = list.find((x) => x.id == btn.dataset.id);
+      if (!b) return;
       if (btn.dataset.act === "detail") openBatchModal(b);
       else deleteBatch(b);
     };
@@ -85,18 +116,18 @@ async function openBatchModal(b) {
   overlay.innerHTML = `
     <div class="modal" style="width:780px">
       <div class="modal-head">
-        <div class="row between">
-          <div style="min-width:0">
-            <h2 class="card-title" style="font-size:16px">${esc(b.name)}</h2>
+        <div class="row between" style="gap:12px">
+          <div style="flex:1 1 auto;min-width:0">
+            <h2 class="modal-title" title="${esc(b.name)}">${esc(b.name)}</h2>
             <div class="row weak" style="font-size:12px;gap:10px;margin-top:4px;flex-wrap:wrap">
               ${b.tags.length ? b.tags.map(t => `<span class="tag">${esc(t)}</span>`).join("") : ""}
               <span>时间：${fmtTime(b.start_time)} ~ ${fmtTime(b.end_time)}</span>
               <span id="bindModeTag"></span>
             </div>
           </div>
-          <div class="row" style="gap:8px">
+          <div class="row" style="gap:8px;flex-shrink:0;flex-wrap:wrap">
             <button class="btn sm" id="bindModeBtn" title="切换分发模式">切换模式</button>
-            <div class="row" id="batchStatsRow"></div>
+            <div class="row" id="batchStatsRow" style="gap:6px;flex-wrap:wrap"></div>
           </div>
         </div>
         <div class="tabs">
@@ -122,6 +153,28 @@ async function openBatchModal(b) {
 
   const $ = (id) => overlay.querySelector("#" + id);
   const tabs = overlay.querySelectorAll(".tab");
+
+  // 列表查询状态（搜索 / 状态过滤 / 翻页）
+  const codeState = { keyword: "", status: "all", offset: 0, limit: 200, timer: null };
+  const contentState = { keyword: "", status: "all", offset: 0, limit: 200, timer: null };
+
+  /** 拉取 CDK 纯文本清单（每行一个），用于「复制全部」 */
+  async function fetchCodesText(status) {
+    const res = await fetch(`/api/batches/${b.id}/claim-codes/text?status=${encodeURIComponent(status)}`, {
+      headers: { Authorization: "Bearer " + tokenStore.get() },
+    });
+    if (!res.ok) throw new Error("获取 CDK 清单失败");
+    return (await res.text()).trim();
+  }
+
+  async function bulkCopyCodes(status) {
+    try {
+      const text = await fetchCodesText(status);
+      if (!text) { toast(status === "available" ? "没有未使用的 CDK" : "暂无 CDK", "err"); return; }
+      const ok = await copyText(text);
+      toast(ok ? `已复制 ${text.split("\n").length} 个 CDK` : "复制失败，请手动选择复制", ok ? "ok" : "err");
+    } catch (e) { toast(e.message, "err"); }
+  }
 
   function switchTab(name) {
     tabs.forEach((t) => t.classList.toggle("active", t.dataset.tab === name));
@@ -202,11 +255,31 @@ async function openBatchModal(b) {
           </select>
         </div>
       </div>
-      <div class="row" style="gap:10px;margin-bottom:10px">
+      <div class="row" style="gap:10px;margin-bottom:10px;flex-wrap:wrap">
         <button class="btn primary sm" id="doImportContent">导入并去重</button>
-        <span class="weak" id="contentImportResult" style="font-size:12.5px"></span>
+        <span class="weak" id="contentImportResult" style="font-size:12.5px;overflow-wrap:anywhere"></span>
+      </div>
+      <div class="row" style="gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <input class="input" id="contentSearch" placeholder="搜索分发内容" value="${esc(contentState.keyword)}" style="width:200px"/>
+        <select class="input" id="contentStatus" style="width:130px">
+          <option value="all">全部状态</option>
+          <option value="available">未发放</option>
+          <option value="used">已发放</option>
+        </select>
       </div>
       <div id="contentListHost"></div>`;
+
+    const contentStatusSel = $("contentStatus");
+    contentStatusSel.value = contentState.status;
+    contentStatusSel.onchange = () => { contentState.status = contentStatusSel.value; contentState.offset = 0; renderContentList(); };
+    $("contentSearch").oninput = () => {
+      clearTimeout(contentState.timer);
+      contentState.timer = setTimeout(() => {
+        contentState.keyword = $("contentSearch").value.trim();
+        contentState.offset = 0;
+        renderContentList();
+      }, 250);
+    };
 
     const sync = () => {
       const n = new Set($("contentText").value.replace(/\r/g, "").split(/[\s,，;；]+/).map((s) => s.trim()).filter(Boolean)).size;
@@ -237,30 +310,49 @@ async function openBatchModal(b) {
   }
 
   async function renderContentList() {
-    const res = await api(`/api/batches/${b.id}/contents`);
+    const qs = new URLSearchParams({
+      limit: String(contentState.limit),
+      offset: String(contentState.offset),
+      status: contentState.status,
+    });
+    if (contentState.keyword) qs.set("keyword", contentState.keyword);
+    const res = await api(`/api/batches/${b.id}/contents?${qs}`);
     const host = $("contentListHost");
     if (!host) return;
+    const start = contentState.offset;
+    const filtering = Boolean(contentState.keyword) || contentState.status !== "all";
     const rows = res.list.map((c, i) => `
       <tr>
-        <td class="num weak">${i + 1}</td>
+        <td class="num weak">${start + i + 1}</td>
         <td><span class="tag">${esc(TYPE_LABEL[c.type] || c.type)}</span></td>
-        <td class="payload" style="max-width:280px;word-break:break-all">${esc(c.payload)}</td>
+        <td class="payload limit" title="${esc(c.payload)}">${esc(c.payload)}</td>
         <td>${c.status === "used" ? `<span class="badge off">已发放</span>` : `<span class="badge ok">未发放</span>`}</td>
-        <td class="payload weak">${c.bound_code ? esc(c.bound_code) : "—"}</td>
-        <td class="payload weak">${c.claim_code ? esc(c.claim_code) : "—"}</td>
-        <td style="text-align:right;white-space:nowrap">
-          <button class="btn sm" data-copy="${esc(c.payload)}">复制</button>
+        <td class="payload weak limit-sm">${c.bound_code ? esc(c.bound_code) : "—"}</td>
+        <td class="payload weak limit-sm">${c.claim_code ? esc(c.claim_code) : "—"}</td>
+        <td class="col-actions">
+          ${copyBtn(c.payload)}
           ${c.status === "used" ? "" : `<button class="btn sm danger" data-del-content="${c.id}">删除</button>`}
         </td>
-      </tr>`).join("") || `<tr><td colspan="7" class="weak" style="text-align:center">暂无内容</td></tr>`;
+      </tr>`).join("") || `<tr><td colspan="7" class="weak" style="text-align:center;padding:24px">${
+        filtering ? "没有匹配的内容，试试清空搜索条件" : "暂无内容"
+      }</td></tr>`;
     host.innerHTML = `
-      <div class="weak" style="font-size:12px;margin-bottom:6px">内容共 ${fmt(res.total)} 条${res.total > res.list.length ? `，下方显示最新 ${res.list.length} 条` : ""}</div>
-      <div class="table-wrap" style="max-height:260px;overflow:auto;border:1px solid var(--border);border-radius:10px">
+      <div class="weak" style="font-size:12px;margin-bottom:6px;overflow-wrap:anywhere">
+        ${filtering
+          ? `匹配 ${fmt(res.filtered)} 条（项目共 ${fmt(res.total)} 条）`
+          : `内容共 ${fmt(res.total)} 条${res.total > res.list.length + start ? `，已显示 ${fmt(res.list.length + start)} 条` : ""}`}
+      </div>
+      <div class="table-wrap" style="max-height:300px;overflow:auto;border:1px solid var(--border);border-radius:10px">
         <table class="tbl"><thead><tr><th>#</th><th>类型</th><th>内容</th><th>状态</th><th>绑定 CDK</th><th>领取 CDK</th><th style="text-align:right">操作</th></tr></thead><tbody>${rows}</tbody></table>
       </div>`;
-    host.querySelectorAll("[data-copy]").forEach((btn) => {
-      btn.onclick = async () => { toast((await copyText(btn.dataset.copy)) ? "已复制" : "复制失败"); };
-    });
+    bindCopy(host);
+    if (res.hasMore) {
+      host.insertAdjacentHTML("beforeend",
+        `<div class="row" style="justify-content:center;margin-top:10px">
+           <button class="btn sm" id="loadMoreContents">加载更多（已显示 ${fmt(res.list.length + start)} / ${fmt(res.filtered)}）</button>
+         </div>`);
+      host.querySelector("#loadMoreContents").onclick = () => { contentState.offset += contentState.limit; renderContentList(); };
+    }
     host.querySelectorAll("[data-del-content]").forEach((btn) => {
       btn.onclick = async () => {
         if (!confirm("确认删除这条内容？")) return;
@@ -293,22 +385,65 @@ async function openBatchModal(b) {
       : "";
     $("paneCodes").innerHTML = `
       <div class="card" style="padding:14px 16px;background:#F9FAFB;margin-bottom:14px">
-        <div class="row between" style="flex-wrap:wrap;gap:10px">
-          <div class="row" style="gap:10px;flex-wrap:wrap">
-            <input class="input" id="genCount" type="number" min="1" max="${bound ? Math.max(s.contentBindable, 1) : MAX_GENERATE}" placeholder="生成数量" style="width:120px"/>
-            <input class="input" id="genPrefix" maxlength="8" placeholder="前缀（可选）" style="width:130px"/>
+        <div class="field" style="margin-bottom:12px">
+          <label>批量生成 <span class="hint">16 位随机码，生成后可一键复制</span></label>
+          <div class="row" style="gap:8px;flex-wrap:wrap">
+            <input class="input" id="genCount" type="number" min="1" max="${bound ? Math.max(s.contentBindable, 1) : MAX_GENERATE}" placeholder="生成数量" style="width:130px"/>
+            <input class="input" id="genPrefix" maxlength="8" placeholder="前缀（可选）" style="width:150px"/>
             <button class="btn primary sm" id="doGenerate">批量生成</button>
           </div>
-          <div class="row" style="gap:8px">
-            <input class="input" id="importCodes" placeholder="已有 CDK，逗号 / 换行分隔" style="width:220px"/>
-            <button class="btn sm" id="doImportCodes">手动导入</button>
+        </div>
+        <div class="field" style="margin-bottom:12px">
+          <label>手动导入 <span class="hint">已有 CDK，逗号 / 换行分隔，全局去重</span></label>
+          <div class="row" style="gap:8px;flex-wrap:wrap">
+            <input class="input" id="importCodes" placeholder="粘贴已有 CDK" style="min-width:180px"/>
+            <button class="btn sm" id="doImportCodes">导入</button>
           </div>
         </div>
-        <div class="weak" style="font-size:12px;margin-top:8px">${esc(modeHint)}</div>
+        <div class="weak" style="font-size:12px">${esc(modeHint)}</div>
         <div class="weak" style="font-size:12px;margin-top:2px">标准 CDK 为 16 位随机码，不区分大小写、横线可省略。</div>
         ${poolTip}
       </div>
+      <div class="card" style="padding:12px 16px;margin-bottom:12px">
+        <div class="row between" style="gap:10px;flex-wrap:wrap">
+          <div class="row" style="gap:8px;flex-wrap:wrap">
+            <input class="input" id="codeSearch" placeholder="搜索 CDK / 绑定内容" value="${esc(codeState.keyword)}" style="width:200px"/>
+            <select class="input" id="codeStatus" style="width:130px">
+              <option value="all">全部状态</option>
+              <option value="available">未使用</option>
+              <option value="claimed">已使用</option>
+            </select>
+          </div>
+          <div class="row" style="gap:8px;flex-wrap:wrap">
+            <button class="btn primary sm" id="copyAllAvailable">复制全部未使用</button>
+            <button class="btn sm" id="copyAll">复制全部</button>
+            <button class="btn sm" id="expCodesTxt">导出 TXT</button>
+          </div>
+        </div>
+      </div>
       <div id="codeListHost"></div>`;
+
+    const codeStatusSel = $("codeStatus");
+    codeStatusSel.value = codeState.status;
+    codeStatusSel.onchange = () => { codeState.status = codeStatusSel.value; codeState.offset = 0; renderCodeList(); };
+    $("codeSearch").oninput = () => {
+      clearTimeout(codeState.timer);
+      codeState.timer = setTimeout(() => {
+        codeState.keyword = $("codeSearch").value.trim();
+        codeState.offset = 0;
+        renderCodeList();
+      }, 250);
+    };
+
+    $("copyAllAvailable").onclick = () => bulkCopyCodes("available");
+    $("copyAll").onclick = () => bulkCopyCodes("all");
+    $("expCodesTxt").onclick = async () => {
+      try {
+        const text = await fetchCodesText("all");
+        downloadBlob(text, `${b.name}_CDK.txt`);
+        toast(`已导出 ${text.split("\n").length} 个 CDK`);
+      } catch (e) { toast(e.message, "err"); }
+    };
 
     $("doGenerate").onclick = async () => {
       const count = Number($("genCount").value);
@@ -323,6 +458,7 @@ async function openBatchModal(b) {
         toast(`已生成 ${r.inserted} 个 CDK`);
         $("genCount").value = "";
         await renderCodeList(); await refreshStats();
+        if (r.codes && r.codes.length) showCodesResult(r.codes, "生成", b.name);
       } catch (e) { toast(e.message, "err"); }
       finally { btn.disabled = false; }
     };
@@ -339,6 +475,7 @@ async function openBatchModal(b) {
         toast(`导入 ${r.inserted} 个，去重 ${r.duplicate}${r.invalid ? `，无效 ${r.invalid}` : ""}`);
         $("importCodes").value = "";
         await renderCodeList(); await refreshStats();
+        if (r.codes && r.codes.length) showCodesResult(r.codes, "导入", b.name);
       } catch (e) { toast(e.message, "err"); }
       finally { btn.disabled = false; }
     };
@@ -347,33 +484,52 @@ async function openBatchModal(b) {
   }
 
   async function renderCodeList() {
-    const res = await api(`/api/batches/${b.id}/claim-codes`);
+    const qs = new URLSearchParams({
+      limit: String(codeState.limit),
+      offset: String(codeState.offset),
+      status: codeState.status,
+    });
+    if (codeState.keyword) qs.set("keyword", codeState.keyword);
+    const res = await api(`/api/batches/${b.id}/claim-codes?${qs}`);
     const host = $("codeListHost");
     if (!host) return;
+    const start = codeState.offset;
+    const filtering = Boolean(codeState.keyword) || codeState.status !== "all";
     const rows = res.list.map((c, i) => `
       <tr>
-        <td class="num weak">${i + 1}</td>
-        <td class="payload">${esc(c.code_display)}</td>
-        <td class="payload weak" style="max-width:200px;word-break:break-all">${c.bound_payload ? esc(c.bound_payload) : "—"}</td>
+        <td class="num weak">${start + i + 1}</td>
+        <td class="payload" style="overflow-wrap:anywhere">${esc(c.code_display)}</td>
+        <td class="payload weak limit-sm" title="${esc(c.bound_payload || "")}">${c.bound_payload ? esc(c.bound_payload) : "—"}</td>
         <td>${c.status === "claimed"
           ? `<span class="badge off">已使用</span>`
           : c.status === "disabled"
             ? `<span class="badge warn">已禁用</span>`
             : `<span class="badge ok">未使用</span>`}</td>
         <td class="weak num" style="font-size:12px">${c.claimed_at ? fullTime(c.claimed_at) : "—"}</td>
-        <td style="text-align:right;white-space:nowrap">
-          <button class="btn sm" data-copy="${esc(c.code_display)}">复制</button>
+        <td class="col-actions">
+          ${copyBtn(c.code_display)}
           ${c.status === "available" ? `<button class="btn sm danger" data-del-code="${c.id}">删除</button>` : ""}
         </td>
-      </tr>`).join("") || `<tr><td colspan="6" class="weak" style="text-align:center">暂无 CDK，请先批量生成</td></tr>`;
+      </tr>`).join("") || `<tr><td colspan="6" class="weak" style="text-align:center;padding:24px">${
+        filtering ? "没有匹配的 CDK，试试清空搜索条件" : "暂无 CDK，请先批量生成"
+      }</td></tr>`;
     host.innerHTML = `
-      <div class="weak" style="font-size:12px;margin-bottom:6px">CDK 共 ${fmt(res.total)} 个${res.total > res.list.length ? `，下方显示最新 ${res.list.length} 个（完整清单请导出 CSV）` : ""}</div>
-      <div class="table-wrap" style="max-height:300px;overflow:auto;border:1px solid var(--border);border-radius:10px">
+      <div class="weak" style="font-size:12px;margin-bottom:6px;overflow-wrap:anywhere">
+        ${filtering
+          ? `匹配 ${fmt(res.filtered)} 个（项目共 ${fmt(res.total)} 个）`
+          : `CDK 共 ${fmt(res.total)} 个${res.total > res.list.length + start ? `，已显示 ${fmt(res.list.length + start)} 个` : ""}`}
+      </div>
+      <div class="table-wrap" style="max-height:340px;overflow:auto;border:1px solid var(--border);border-radius:10px">
         <table class="tbl"><thead><tr><th>#</th><th>领取 CDK</th><th>绑定内容</th><th>状态</th><th>领取时间</th><th style="text-align:right">操作</th></tr></thead><tbody>${rows}</tbody></table>
       </div>`;
-    host.querySelectorAll("[data-copy]").forEach((btn) => {
-      btn.onclick = async () => { toast((await copyText(btn.dataset.copy)) ? "已复制" : "复制失败"); };
-    });
+    bindCopy(host);
+    if (res.hasMore) {
+      host.insertAdjacentHTML("beforeend",
+        `<div class="row" style="justify-content:center;margin-top:10px">
+           <button class="btn sm" id="loadMoreCodes">加载更多（已显示 ${fmt(res.list.length + start)} / ${fmt(res.filtered)}）</button>
+         </div>`);
+      host.querySelector("#loadMoreCodes").onclick = () => { codeState.offset += codeState.limit; renderCodeList(); };
+    }
     host.querySelectorAll("[data-del-code]").forEach((btn) => {
       btn.onclick = async () => {
         if (!confirm("确认删除这个 CDK？")) return;
