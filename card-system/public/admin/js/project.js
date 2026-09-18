@@ -102,7 +102,14 @@ function batchStatusBadge(b) {
 }
 
 async function deleteBatch(b) {
-  if (!confirm(`确认删除项目「${b.name}」？该项目下的分发内容、领取 CDK 与领取记录将一并删除，不可恢复。`)) return;
+  const ok = await confirmDialog({
+    title: `删除项目「${b.name}」`,
+    description: "该项目下的分发内容、领取 CDK 与领取记录将一并删除，不可恢复。",
+    confirmText: "删除",
+    danger: true,
+    icon: "trash",
+  });
+  if (!ok) return;
   try {
     await api(`/api/batches/${b.id}`, { method: "DELETE" });
     toast("项目已删除");
@@ -372,8 +379,8 @@ async function openBatchModal(b) {
       </div>
       <div class="weak" style="font-size:12px;margin-top:8px">
         ${b.bind_mode === "bound"
-          ? "一码一内容绑定：未发放的内容会显示预先绑定的 CDK（打码显示，悬停看全码）。"
-          : "动态发放：内容不预绑定 CDK，用户领取时按顺序发放；已发放的内容显示领取者使用的 CDK。"}
+          ? "一码一内容绑定：未发放显示预绑定的 CDK，已发放显示领取者使用的 CDK（打码显示，悬停看全码）。"
+          : "动态发放：内容领取后会显示领取者使用的 CDK（打码显示，悬停看全码）。"}
       </div>`;
     bindCopy(host);
     if (res.hasMore) {
@@ -385,7 +392,14 @@ async function openBatchModal(b) {
     }
     host.querySelectorAll("[data-del-content]").forEach((btn) => {
       btn.onclick = async () => {
-        if (!confirm("确认删除这条内容？")) return;
+        const ok = await confirmDialog({
+          title: "删除这条内容",
+          description: "删除后不可恢复；如该内容已被领取，领取记录仍会保留。",
+          confirmText: "删除",
+          danger: true,
+          icon: "trash",
+        });
+        if (!ok) return;
         try {
           await api(`/api/batches/${b.id}/contents/${btn.dataset.delContent}`, { method: "DELETE" });
           toast("内容已删除");
@@ -437,7 +451,7 @@ async function openBatchModal(b) {
       <div class="card" style="padding:12px 16px;margin-bottom:12px">
         <div class="row between" style="gap:10px;flex-wrap:wrap">
           <div class="row" style="gap:8px;flex-wrap:wrap">
-            <input class="input" id="codeSearch" placeholder="搜索 CDK / 绑定内容" value="${esc(codeState.keyword)}" style="width:200px"/>
+            <input class="input" id="codeSearch" placeholder="搜索 CDK / 内容" value="${esc(codeState.keyword)}" style="width:200px"/>
             <select class="input" id="codeStatus" style="width:130px">
               <option value="all">全部状态</option>
               <option value="available">未使用</option>
@@ -529,7 +543,7 @@ async function openBatchModal(b) {
       <tr>
         <td class="num weak">${start + i + 1}</td>
         <td class="payload" style="overflow-wrap:anywhere">${esc(c.code_display)}</td>
-        <td class="payload weak limit-sm" title="${esc(c.bound_payload || "")}">${c.bound_payload ? esc(c.bound_payload) : "—"}</td>
+        <td class="payload weak limit-sm" title="${esc(c.bound_payload || "")}">${c.bound_payload ? esc(c.bound_payload) : `<span class="weak">—</span>`}</td>
         <td>${c.status === "claimed"
           ? `<span class="badge off">已使用</span>`
           : c.status === "disabled"
@@ -550,7 +564,7 @@ async function openBatchModal(b) {
           : `CDK 共 ${fmt(res.total)} 个${res.total > res.list.length + start ? `，已显示 ${fmt(res.list.length + start)} 个` : ""}`}
       </div>
       <div class="table-wrap" style="max-height:340px;overflow:auto;border:1px solid var(--border);border-radius:10px">
-        <table class="tbl"><thead><tr><th>#</th><th>领取 CDK</th><th>绑定内容</th><th>状态</th><th>领取时间</th><th style="text-align:right">操作</th></tr></thead><tbody>${rows}</tbody></table>
+        <table class="tbl"><thead><tr><th>#</th><th>领取 CDK</th><th>发放内容</th><th>状态</th><th>领取时间</th><th style="text-align:right">操作</th></tr></thead><tbody>${rows}</tbody></table>
       </div>`;
     bindCopy(host);
     if (res.hasMore) {

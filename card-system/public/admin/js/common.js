@@ -16,6 +16,23 @@ function greeting() {
   return "晚上好";
 }
 
+/** 数字滚动动画（用户开启"减少动态效果"时直接显示最终值） */
+function countUp(el, target, dur = 600) {
+  const final = Number(target) || 0;
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    el.textContent = final.toLocaleString("zh-CN");
+    return;
+  }
+  const start = performance.now();
+  function frame(t) {
+    const p = Math.min(1, (t - start) / dur);
+    const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
+    el.textContent = Math.round(final * eased).toLocaleString("zh-CN");
+    if (p < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
 async function api(path, opts = {}) {
   const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
   const token = tokenStore.get();
@@ -570,6 +587,7 @@ window.toast = toast;
 window.copyText = copyText;
 window.esc = esc;
 window.greeting = greeting;
+window.countUp = countUp;
 window.renderDock = renderDock;
 window.bindCopy = bindCopy;
 window.copyBtn = copyBtn;
