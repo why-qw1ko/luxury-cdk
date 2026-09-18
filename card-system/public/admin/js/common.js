@@ -259,7 +259,7 @@ async function renderDock(active) {
     : "";
 
   host.innerHTML = `
-    <nav class="dock">
+    <nav class="dock fx-glass">
       <a class="dock-btn ${active === "dashboard" ? "active" : ""}" href="/admin/dashboard.html" title="概览">${icon(bar)}</a>
       <a class="dock-btn ${active === "project" ? "active" : ""}" href="/admin/project.html" title="项目">${icon(folder)}</a>
       <a class="dock-btn ${active === "received" ? "active" : ""}" href="/admin/received.html" title="领取记录">${icon(bag)}</a>
