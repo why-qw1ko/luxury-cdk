@@ -33,13 +33,23 @@ luxury-cdk 是一个 CDK 批量发放管理系统：管理员在项目中维护�
 - **概览看板**：问候语标题、统计卡片（卡密总量/剩余库存/累计领取/今日领取，含环比）、近 14 天领取面积图、领取排行、项目领取分布环形图、最近领取列表；普通用户仅看自己的数据。
 - **项目管理**：创建项目（"新建项目"弹窗 = 基本设置 + 分发内容 + 领取 CDK 三个 tab），含项目名称（≤32 字符）、关联标签（0–10）、起止时间、项目描述、**领取模式（动态发放 / 一码一内容绑定）**；一码一用。
 - **分发内容管理**：粘贴文本批量导入（自动去重、自动识别兑换码/链接/文本）、单条删除、内容维度 CSV 导出。
-- **领取 CDK 管理**：批量生成（16 位随机码，不含易混淆字符，支持自定义前缀）、手动导入已有 CDK（全局去重）、单条删除、CDK 清单 CSV 导出（用于对外分发）。
+- **领取 CDK 管理**：批量生成（默认 16 位随机码，不含易混淆字符，支持自定义前缀）、手动导入已有 CDK（全局去重）、单条删除、CDK 清单 CSV / TXT 导出（用于对外分发）。
+  - **生成后立即弹出结果面板**，支持一键复制全部 / 单条复制 / 导出 TXT：服务端会一并返回本次生成的每一个码。
+  - 列表支持**按 CDK 或绑定内容搜索**、按状态（未使用 / 已使用）过滤、分页加载更多；另有「复制全部未使用」「复制全部」按钮。
 - **领取记录**：按项目筛选 + 按 CDK / 发放内容 / 领取 IP 搜索，含「哪个 CDK 领走了哪份内容」。
 - **导出 CSV**：内容发放明细（内容类型/内容/状态/领取CDK/领取IP/领取时间）与 CDK 清单。
 
 ### 前台领取页
 - 用户输入领取 CDK 即可领取，实时校验：CDK 是否存在、是否已被使用（一码一用）、项目是否处于可领取时间、内容库存是否充足。
 - 领取结果按类型展示（兑换码 / 链接 / 文本），提供**一键复制**与链接直达；无需选择项目，CDK 自身即确定项目归属。
+- 内容排版按长度自适应：短兑换码放大居中，长链接 / 长文本自动回落为左对齐小字号并限高滚动，不会撑破卡片。
+
+## 界面文本适配约定
+- 栅格轨道统一使用 `minmax(0, 1fr)`（默认 `1fr` 不会收缩到内容宽度以下，长文本会撑破整行）。
+- 复用零侵入的工具类：`.trunc`（单行截断）、`.clamp-2`（两行截断）、`.break-any`（强制断行）、`.limit` / `.limit-sm`（表格单元格限宽）。
+- 凡是做截断的元素都必须带 `title` 属性，保证鼠标悬停仍能看到全文。
+- `.btn` 带 `flex-shrink: 0`，与长文本同行时不会被挤扁。
+- CDK 展示格式为每 4 位一组（任意长度都分组，带前缀的 19+ 位码同样可读）。
 
 ## 关键设计：唯一性与并发
 - 数据库层对 `claim_codes.code` 建立 **UNIQUE 索引** 作为去重兜底；`contents(batch_id, payload)` 同样唯一，避免同一份内容被重复导入而重复发放。
@@ -130,9 +140,13 @@ card-system/
 | DELETE | `/api/batches/:id/contents/:contentId` | 删除未发放且未被 CDK 占用的内容 | 项目归属者/管理员 |
 | POST | `/api/batches/:id/claim-codes/generate` | 批量生成领取 CDK（绑定模式下同时绑定内容） | 项目归属者/管理员 |
 | POST | `/api/batches/:id/claim-codes/import` | 手动导入 CDK（全局去重） | 项目归属者/管理员 |
-| GET  | `/api/batches/:id/claim-codes` | CDK 清单 | 项目归属者/管理员 |
+| GET  | `/api/batches/:id/claim-codes` | CDK 清单（支持 `keyword` / `status` / `limit` / `offset` 筛选翻页） | 项目归属者/管理员 |
+| GET  | `/api/batches/:id/claim-codes/text` | CDK 纯文本清单（每行一个，`status` 可选 available/all/claimed），用于「复制全部」 | 项目归属者/管理员 |
 | DELETE | `/api/batches/:id/claim-codes/:codeId` | 删除未使用 CDK | 项目归属者/管理员 |
+| POST | `/api/batches/:id/claim-codes/generate` | 批量生成领取 CDK（绑定模式下同时绑定内容），返回 `codes: [{code, display}]` | 项目归属者/管理员 |
+| POST | `/api/batches/:id/claim-codes/import` | 手动导入 CDK（全局去重），同样返回本次导入的 `codes` | 项目归属者/管理员 |
 | GET  | `/api/batches/:id/claim-codes/export` | 导出 CDK 清单 CSV | 项目归属者/管理员 |
+| GET  | `/api/batches/:id/contents` | 分发内容清单（支持 `keyword` / `status` / `limit` / `offset`） | 项目归属者/管理员 |
 | GET  | `/api/batches/:id/claims` | 项目领取记录 | 项目归属者/管理员 |
 | GET  | `/api/batches/:id/export` | 导出内容发放明细 CSV | 项目归属者/管理员 |
 | DELETE | `/api/batches/:id` | 删除项目 | 项目归属者/管理员 |

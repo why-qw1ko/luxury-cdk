@@ -91,12 +91,12 @@ function drawDonut(el, legendEl, data) {
     </svg>`;
   legendEl.innerHTML = segs
     .map((s) => `
-      <div class="row" style="justify-content:space-between;padding:6px 4px;border-bottom:1px solid var(--border)">
-        <div class="row" style="min-width:0">
+      <div class="row" style="justify-content:space-between;gap:8px;padding:6px 4px;border-bottom:1px solid var(--border)">
+        <div class="row" style="flex:1 1 auto;min-width:0">
           <span style="width:9px;height:9px;border-radius:3px;background:${s.color};flex-shrink:0"></span>
-          <span style="font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.d.name)}</span>
+          <span class="trunc" style="font-size:12.5px;min-width:0" title="${esc(s.d.name)}">${esc(s.d.name)}</span>
         </div>
-        <div class="row" style="gap:10px">
+        <div class="row" style="gap:10px;flex-shrink:0">
           <span class="num" style="font-size:12px;color:var(--text-2)">${fmt(s.d.value)}</span>
           <span class="num" style="font-size:12px;color:var(--text-3);width:44px;text-align:right">${(s.frac * 100).toFixed(1)}%</span>
         </div>
@@ -144,7 +144,7 @@ function renderRanking(list) {
     <li class="rank-item ${i < 3 ? "top" + (i + 1) : ""}">
       <div class="rank-num">${i + 1}</div>
       <div class="rank-main">
-        <div class="rank-title">${esc(it.name)}</div>
+        <div class="rank-title clamp-2" title="${esc(it.name)}">${esc(it.name)}</div>
         <div class="rank-sub">剩余可领 ${fmt(it.remaining)}（CDK ${fmt(it.codeAvailable)} / 内容 ${fmt(it.contentAvailable)}）</div>
       </div>
       <div class="rank-val num">${fmt(it.claimed)}</div>
@@ -161,8 +161,8 @@ function renderRecent(list) {
     <li class="rank-item">
       <div class="rank-num">${i + 1}</div>
       <div class="rank-main">
-        <div class="rank-title payload">${esc(r.content_payload)}</div>
-        <div class="rank-sub">${esc(r.project_name || "—")}</div>
+        <div class="rank-title payload clamp-2" title="${esc(r.content_payload)}">${esc(r.content_payload)}</div>
+        <div class="rank-sub trunc" title="${esc(r.project_name || "")}">${esc(r.project_name || "—")}</div>
       </div>
       <div class="rank-val num" style="font-size:12px;color:var(--text-3);font-weight:500">${esc(r.claimed_at)}</div>
     </li>`).join("");

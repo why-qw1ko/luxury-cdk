@@ -93,6 +93,117 @@ async function copyText(text) {
   } catch { return false; }
 }
 
+/* 统一的复制按钮行为：成功则按钮短暂显示「已复制」，失败明确提示手动复制。
+   页面只需要给按钮加上 data-copy="要复制的内容"，再调用 bindCopy(根节点)。 */
+function bindCopy(root) {
+  (root || document).querySelectorAll("[data-copy]").forEach((btn) => {
+    if (btn.dataset.copyBound) return;
+    btn.dataset.copyBound = "1";
+    btn.addEventListener("click", async () => {
+      const ok = await copyText(btn.dataset.copy);
+      if (ok) {
+        toast("已复制到剪贴板");
+        if (btn.dataset.copyLabel !== "0") {
+          const span = btn.querySelector("span.cp-label") || null;
+          if (span) {
+            const old = span.textContent;
+            span.textContent = "已复制";
+            setTimeout(() => { span.textContent = old; }, 1600);
+          } else {
+            const old = btn.textContent;
+            btn.textContent = "已复制";
+            setTimeout(() => { btn.textContent = old; }, 1600);
+          }
+        }
+      } else {
+        toast("复制失败，请手动选择内容复制", "err");
+      }
+    });
+  });
+}
+
+/** 生成一个标准复制按钮；label 为 false 时只显示图标 */
+function copyBtn(text, label = "复制") {
+  return `<button class="btn sm" data-copy="${esc(text)}" title="${esc(text)}">${ICON_COPY}${label ? `<span class="cp-label">${esc(label)}</span>` : ""}</button>`;
+}
+
+const ICON_COPY = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>`;
+
+/** 导出任意文本为本地文件（TXT / CSV） */
+function downloadBlob(content, filename, type = "text/plain;charset=utf-8") {
+  const blob = new Blob(["\uFEFF" + content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * 生成 / 导入 CDK 后立刻把新码展示出来并提供一键复制。
+ * 这些码不在这里复制走的话，之后只能在列表里手动逐个复制，所以这一步很关键。
+ * @param {Array<{code:string, display:string}>} codes
+ * @param {string} actionLabel  "生成" | "导入"
+ * @param {string} batchName   用于导出文件名
+ */
+function showCodesResult(codes, actionLabel = "生成", batchName = "CDK") {
+  const list = Array.isArray(codes) ? codes : [];
+  if (!list.length) return;
+  const nfmt = (n) => Number(n || 0).toLocaleString("zh-CN");
+  const allText = list.map((c) => c.display || c.code).join("\n");
+
+  const overlay = document.createElement("div");
+  overlay.className = "overlay open";
+  overlay.style.zIndex = "80"; // 叠在项目详情弹窗之上
+
+  // 数量不多时逐条渲染并带单独复制按钮；量大时只渲染整体文本，避免生成上万个 DOM 节点
+  const detail = list.length <= 100
+    ? `<div class="table-wrap" style="max-height:280px;overflow:auto;border:1px solid var(--border);border-radius:10px">
+         <table class="tbl"><tbody>${list.map((c, i) => `
+           <tr>
+             <td class="num weak" style="width:52px">${i + 1}</td>
+             <td class="payload" style="overflow-wrap:anywhere">${esc(c.display || c.code)}</td>
+             <td class="col-actions">${copyBtn(c.display || c.code)}</td>
+           </tr>`).join("")}</tbody></table>
+       </div>`
+    : `<div style="max-height:280px;overflow:auto;border:1px solid var(--border);border-radius:10px;background:#F9FAFB;padding:12px 14px">
+         <div class="payload" style="line-height:2;overflow-wrap:anywhere;white-space:pre-wrap;user-select:all">${esc(allText)}</div>
+       </div>`;
+
+  overlay.innerHTML = `
+    <div class="modal" style="width:560px">
+      <div class="modal-head">
+        <h2 class="modal-title">${esc(actionLabel)}成功 · ${nfmt(list.length)} 个 CDK</h2>
+        <p class="page-sub" style="margin-top:4px">请立即复制保存；关闭后仍可在项目的「领取 CDK」标签中查看、搜索与导出。</p>
+      </div>
+      <div class="modal-body">
+        <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="btn primary sm" id="cpResAll">复制全部（${nfmt(list.length)}）</button>
+          <button class="btn sm" id="txtRes">导出 TXT</button>
+        </div>
+        ${detail}
+      </div>
+      <div class="modal-foot"><button class="btn primary" id="closeRes">我知道了</button></div>
+    </div>`;
+  document.body.appendChild(overlay);
+  // 记住外层状态：可能会盖在项目详情弹窗之上，关闭时要还原而不是一律放开滚动
+  const prevOverflow = document.body.style.overflow;
+  document.body.style.overflow = "hidden";
+
+  const destroy = () => { overlay.remove(); document.body.style.overflow = prevOverflow; };
+  overlay.querySelector("#closeRes").onclick = destroy;
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) destroy(); });
+  overlay.querySelector("#cpResAll").onclick = async () => {
+    const ok = await copyText(allText);
+    toast(ok ? `已复制 ${nfmt(list.length)} 个 CDK` : "复制失败，请手动选择复制", ok ? "ok" : "err");
+  };
+  overlay.querySelector("#txtRes").onclick = () => {
+    downloadBlob(allText, `${batchName}_CDK_${list.length}个.txt`);
+    toast("已导出 TXT");
+  };
+  bindCopy(overlay);
+}
+
 /* ---------- 底部悬浮导航 ---------- */
 async function renderDock(active) {
   const host = document.getElementById("dock");
@@ -329,6 +440,19 @@ function openNewProjectModal(onCreated) {
   });
   $("npSubmit").onclick = submit;
 
+  // 弹窗里的 <form> 没有提交目标，回车会触发表单默认提交并整页刷新，
+  // 导致已填内容全部丢失。这里统一接管：回车 = 下一步 / 创建项目。
+  overlay.querySelectorAll("form").forEach((f) => {
+    f.addEventListener("submit", (e) => e.preventDefault());
+    f.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      if (e.target.tagName === "TEXTAREA") return; // 多行输入框保留换行
+      e.preventDefault();
+      if (tabIndex < TABS.length - 1) $("npNext").click();
+      else if (!$("npSubmit").disabled) $("npSubmit").click();
+    });
+  });
+
   $("npCancel").onclick = close;
   $("npX").onclick = close;
   overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
@@ -355,6 +479,7 @@ function openNewProjectModal(onCreated) {
     try {
       const res = await api("/api/batches", { method: "POST", body: JSON.stringify(body) });
       const id = res.batch.id;
+      const createdCodes = [];
       const parts = [];
 
       if (contents.trim()) {
@@ -373,6 +498,7 @@ function openNewProjectModal(onCreated) {
             body: JSON.stringify({ count, prefix: $("npPrefix").value.trim() }),
           });
           parts.push(`CDK ${gen.inserted} 个`);
+          if (gen.codes) createdCodes.push(...gen.codes);
         }
       } else {
         const text = $("npCodeText").value;
@@ -382,12 +508,15 @@ function openNewProjectModal(onCreated) {
             body: JSON.stringify({ text }),
           });
           parts.push(`CDK ${imp.inserted} 个（去重 ${imp.duplicate}${imp.invalid ? `，无效 ${imp.invalid}` : ""}）`);
+          if (imp.codes) createdCodes.push(...imp.codes);
         }
       }
 
       toast(parts.length ? `项目已创建：${parts.join("，")}` : "项目已创建");
       close();
       onCreated && onCreated();
+      // 新建流程里生成的 CDK 同样要能一键复制走
+      if (createdCodes.length) showCodesResult(createdCodes, codeSrc === "generate" ? "生成" : "导入", name);
     } catch (e) { toast(e.message, "err"); }
     finally { btn.disabled = false; btn.textContent = "创建项目"; }
   }
@@ -403,6 +532,7 @@ function openNewProjectModal(onCreated) {
   syncCount();
   syncCodeSrc();
   syncBindMode();
+  $("npName").focus(); // 打开就能直接输入
 }
 
 window.__openNewProject ||= openNewProjectModal;
@@ -413,10 +543,14 @@ window.copyText = copyText;
 window.esc = esc;
 window.greeting = greeting;
 window.renderDock = renderDock;
+window.bindCopy = bindCopy;
+window.copyBtn = copyBtn;
+window.downloadBlob = downloadBlob;
+window.showCodesResult = showCodesResult;
 window.tokenStore = tokenStore;
 window.ensureUser = ensureUser;
 window.displayName = displayName;
-window.currentUserUser = () => currentUser;
+window.getCurrentUser = () => currentUser;
 
 document.addEventListener("DOMContentLoaded", () => {
   const page = document.body.dataset.page;
