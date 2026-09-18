@@ -118,9 +118,9 @@ function renderStats(s) {
       : `<span class="pill ${d >= 0 ? "up" : "down"}">${d >= 0 ? "↑" : "↓"} ${Math.abs(d)}%</span>`;
 
   const items = [
-    { label: "卡密总量", value: s.total, icon: ICONS.total, sub: fmt(s.batches) + " 个项目", pillC: null },
-    { label: "剩余库存", value: s.remaining, icon: ICONS.remaining, sub: s.total ? Math.round((s.remaining / s.total) * 100) + "% 未领取" : "", pillC: null },
-    { label: "累计已领取", value: s.claimed, icon: ICONS.claimed, sub: s.total ? Math.round((s.claimed / s.total) * 100) + "% 已用" : "", pillC: null },
+    { label: "领取 CDK 总量", value: s.codeTotal, icon: ICONS.total, sub: fmt(s.batches) + " 个项目", pillC: null },
+    { label: "剩余可领取", value: s.remaining, icon: ICONS.remaining, sub: `可领 CDK ${fmt(s.codeAvailable)} · 内容 ${fmt(s.contentAvailable)}`, pillC: null },
+    { label: "累计已领取", value: s.claimed, icon: ICONS.claimed, sub: s.codeTotal ? Math.round((s.claimed / s.codeTotal) * 100) + "% 已用" : "", pillC: null },
     { label: "今日领取", value: s.todayClaimed, icon: ICONS.today, sub: "较昨日", pillC: s.todayClaimedDelta, pillArr: s },
   ];
   document.getElementById("statCards").innerHTML = items.map((it) => `
@@ -145,7 +145,7 @@ function renderRanking(list) {
       <div class="rank-num">${i + 1}</div>
       <div class="rank-main">
         <div class="rank-title">${esc(it.name)}</div>
-        <div class="rank-sub">剩余 ${fmt(it.remaining)} 张卡密</div>
+        <div class="rank-sub">剩余可领 ${fmt(it.remaining)}（CDK ${fmt(it.codeAvailable)} / 内容 ${fmt(it.contentAvailable)}）</div>
       </div>
       <div class="rank-val num">${fmt(it.claimed)}</div>
     </li>`).join("");
@@ -161,7 +161,7 @@ function renderRecent(list) {
     <li class="rank-item">
       <div class="rank-num">${i + 1}</div>
       <div class="rank-main">
-        <div class="rank-title payload">${esc(r.code)}</div>
+        <div class="rank-title payload">${esc(r.content_payload)}</div>
         <div class="rank-sub">${esc(r.project_name || "—")}</div>
       </div>
       <div class="rank-val num" style="font-size:12px;color:var(--text-3);font-weight:500">${esc(r.claimed_at)}</div>

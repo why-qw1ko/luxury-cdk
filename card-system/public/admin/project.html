@@ -11,7 +11,7 @@
     <header class="page-header">
       <div>
         <h1 class="page-title" id="pageTitle">管理人员，管理员</h1>
-        <p class="page-sub">创建项目、批量导入卡密并跟踪发放情况</p>
+        <p class="page-sub">创建项目、导入分发内容、生成领取 CDK 并跟踪发放情况</p>
       </div>
       <button class="btn primary" id="newProject">+ 新建项目</button>
     </header>
@@ -23,8 +23,9 @@
             <tr>
               <th>项目</th>
               <th>标签</th>
-              <th>总卡密</th>
-              <th>剩余</th>
+              <th>剩余可领</th>
+              <th>CDK 库存</th>
+              <th>内容库存</th>
               <th>已领取</th>
               <th>状态</th>
               <th>创建时间</th>
@@ -32,7 +33,7 @@
             </tr>
           </thead>
           <tbody id="projectRows">
-            <tr><td colspan="8" class="weak" style="text-align:center">加载中…</td></tr>
+            <tr><td colspan="9" class="weak" style="text-align:center">加载中…</td></tr>
           </tbody>
         </table>
       </div>
