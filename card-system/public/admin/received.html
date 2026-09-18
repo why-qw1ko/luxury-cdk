@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>领取记录 · 卡密发放后台</title>
+  <link rel="stylesheet" href="/css/app.css"/>
+</head>
+<body data-page="received">
+  <div class="page">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title" id="pageTitle">管理人员，管理员</h1>
+        <p class="page-sub">全部项目的卡密领取记录</p>
+      </div>
+      <div class="row">
+        <input class="input" id="searchInput" placeholder="搜索卡密 / 领取IP" style="width:220px"/>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="row between" style="margin-bottom:12px">
+        <div class="row" id="filterRow"></div>
+        <span class="weak" id="totalLabel" style="font-size:12.5px"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>ID</th><th>项目</th><th>卡密</th><th>领取IP</th><th>领取时间</th></tr></thead>
+          <tbody id="claimRows"><tr><td colspan="5" class="weak" style="text-align:center">加载中…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="dock"></div>
+  <script src="/admin/js/common.js"></script>
+  <script src="/admin/js/received.js"></script>
+</body>
+</html>

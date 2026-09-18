@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>项目管理 · 卡密发放后台</title>
+  <link rel="stylesheet" href="/css/app.css"/>
+</head>
+<body data-page="project">
+  <div class="page">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title" id="pageTitle">管理人员，管理员</h1>
+        <p class="page-sub">创建项目、批量导入卡密并跟踪发放情况</p>
+      </div>
+      <button class="btn primary" id="newProject">+ 新建项目</button>
+    </header>
+
+    <div class="card" style="padding:12px 20px">
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>项目</th>
+              <th>标签</th>
+              <th>总卡密</th>
+              <th>剩余</th>
+              <th>已领取</th>
+              <th>状态</th>
+              <th>创建时间</th>
+              <th style="text-align:right">操作</th>
+            </tr>
+          </thead>
+          <tbody id="projectRows">
+            <tr><td colspan="8" class="weak" style="text-align:center">加载中…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="dock"></div>
+  <script src="/admin/js/common.js"></script>
+  <script src="/admin/js/project.js"></script>
+</body>
+</html>
