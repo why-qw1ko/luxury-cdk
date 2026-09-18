@@ -124,7 +124,7 @@ function renderStats(s) {
     { label: "今日领取", value: s.todayClaimed, icon: ICONS.today, sub: "较昨日", pillC: s.todayClaimedDelta, pillArr: s },
   ];
   document.getElementById("statCards").innerHTML = items.map((it) => `
-    <div class="card stat-card">
+    <div class="card stat-card fx-elastic">
       <div class="stat-top">
         <div class="stat-icon">${it.icon}</div>
         ${it.pillC != null && it.pillArr ? pill(it.pillC) : ""}

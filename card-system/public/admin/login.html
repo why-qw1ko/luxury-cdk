@@ -7,27 +7,28 @@
   <script src="/js/theme.js"></script>
   <link rel="stylesheet" href="/css/app.css"/>
 </head>
-<body>
-  <div class="page" style="max-width:400px;padding-top:10vh;padding-bottom:40px">
+<body class="has-orbs" style="position:relative;min-height:100vh;overflow-x:hidden">
+  <div class="fx-orbs" style="position:fixed;inset:0;z-index:0"><i></i><i></i><i></i></div>
+  <div class="page" style="max-width:400px;padding-top:10vh;padding-bottom:40px;position:relative;z-index:1">
     <div style="text-align:center;margin-bottom:28px">
-      <div class="stat-icon" style="width:46px;height:46px;margin:0 auto">
+      <div class="stat-icon fx-breathe" style="width:46px;height:46px;margin:0 auto">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><path d="M12 2v6"></path><path d="M16.24 7.76l-4.24 4.24"></path><path d="M7.76 7.76 12 12"></path><path d="M2 12h6"></path><path d="M16 12h6"></path><path d="M12 16v6"></path></svg>
       </div>
       <h1 class="page-title" id="siteName" style="font-size:22px;margin-top:14px">卡密发放后台</h1>
       <p class="page-sub">登录以管理项目与卡密发放</p>
     </div>
 
-    <div class="card">
+    <div class="card fx-glass">
       <form id="loginForm">
         <div class="field">
           <label>用户名</label>
-          <input class="input" id="username" type="text" placeholder="请输入用户名" autocomplete="username" value="admin"/>
+          <input class="input fx-focus-breathe" id="username" type="text" placeholder="请输入用户名" autocomplete="username" value="admin"/>
         </div>
         <div class="field">
           <label>密码</label>
-          <input class="input" id="password" type="password" placeholder="请输入密码" autocomplete="current-password" autofocus/>
+          <input class="input fx-focus-breathe" id="password" type="password" placeholder="请输入密码" autocomplete="current-password" autofocus/>
         </div>
-        <button class="btn primary" type="submit" id="btn" style="width:100%;padding:11px;font-size:14px">登 录</button>
+        <button class="btn primary fx-shimmer" type="submit" id="btn" style="width:100%;padding:11px;font-size:14px">登 录</button>
       </form>
     </div>
     <p class="weak" style="text-align:center;font-size:12px;margin-top:16px">管理员 / 普通用户 · 密码登录</p>

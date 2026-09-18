@@ -11,10 +11,11 @@
     @media (max-width: 480px){ .claim-hero { padding-top: 20px; } }
   </style>
 </head>
-<body>
-  <div class="claim-hero">
+<body class="has-orbs" style="position:relative;min-height:100vh;overflow-x:hidden">
+  <div class="fx-orbs" style="position:fixed;inset:0;z-index:0"><i></i><i></i><i></i></div>
+  <div class="claim-hero" style="position:relative;z-index:1">
     <div style="text-align:center;margin-bottom:24px">
-      <div class="stat-icon" style="width:52px;height:52px;margin:0 auto">
+      <div class="stat-icon fx-breathe" style="width:52px;height:52px;margin:0 auto">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>
       </div>
       <h1 class="page-title" style="font-size:22px;margin-top:16px">CDK 领取</h1>

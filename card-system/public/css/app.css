@@ -21,10 +21,12 @@
   --danger-soft: #FEF2F2;
   --border: #ECEEF2;
   --border-2: #E5E7EB;
-  --ring: rgba(59, 130, 246, 0.22);   /* focus ring：主色 3px 半透明，shadcn 风格 */
+  --ring: rgba(59, 130, 246, 0.12);   /* focus ring：超淡光环，若有若无 */
   --soft-bg: #F9FAFB;      /* 输入框 / 嵌套面板底色 */
   --hover-bg: #F3F4F6;     /* 行 / 按钮 hover */
   --overlay-bg: rgba(17, 24, 40, 0.5);
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.5);
   --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04);
   --shadow-md: 0 4px 16px rgba(16, 24, 40, 0.08);
   --shadow-lg: 0 12px 40px rgba(16, 24, 40, 0.16);
@@ -55,10 +57,12 @@ html.dark {
   --danger-soft: rgba(248, 113, 113, 0.12);
   --border: #232936;
   --border-2: #2B3242;
-  --ring: rgba(91, 147, 255, 0.38);
+  --ring: rgba(91, 147, 255, 0.18);
   --soft-bg: #161B24;
   --hover-bg: #1B2230;
   --overlay-bg: rgba(0, 0, 0, 0.62);
+  --glass-bg: rgba(17, 21, 28, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.08);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.6);
@@ -393,7 +397,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
   width: 640px; max-width: 100%; max-height: 90vh; overflow: hidden;
   display: flex; flex-direction: column;
   box-shadow: var(--shadow-lg);
-  transform: translateY(10px) scale(0.98); transition: transform .18s ease;
+  transform: translateY(10px) scale(0.98); transition: transform .26s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .overlay.open .modal { transform: none; }
 .modal-head { padding: 20px 20px 0; min-width: 0; }
@@ -568,6 +572,176 @@ html.dark .theme-toggle .icon-moon { display: none; }
   .payload-box > .btn { width: 100%; }
   .payload-box.lg .payload-text { text-align: left; }
 }
+
+/* ============================================================
+   高级动效系统 · 参考 css-effects-hub
+   · 悬浮光球 / 旋转发光边框 / 毛玻璃 / 呼吸光圈 / 粒子上升 / 弹性缩放 / 微光扫过
+   · 颜色全部走 CSS 变量，暗色自动适配，禁止硬编码色值
+   · 文末 prefers-reduced-motion 统一关闭，无需重复声明
+   ============================================================ */
+
+/* ---------- 悬浮光球背景（Floating Orbs） ---------- */
+/* 用法：<div class="fx-orbs"><i></i><i></i><i></i></div>
+   绝对定位铺满父容器，pointer-events:none 不挡交互 */
+.fx-orbs {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.fx-orbs i {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(30px);
+  opacity: 0.5;
+  will-change: transform;
+}
+.fx-orbs i:nth-child(1) {
+  width: 180px; height: 180px;
+  background: radial-gradient(circle, var(--accent), transparent 70%);
+  top: 6%; left: 4%;
+  animation: orbFloat1 9s ease-in-out infinite;
+}
+.fx-orbs i:nth-child(2) {
+  width: 140px; height: 140px;
+  background: radial-gradient(circle, var(--success), transparent 70%);
+  top: 52%; left: 66%;
+  animation: orbFloat2 11s ease-in-out infinite 1.5s;
+}
+.fx-orbs i:nth-child(3) {
+  width: 110px; height: 110px;
+  background: radial-gradient(circle, var(--warning), transparent 70%);
+  top: 28%; left: 70%;
+  animation: orbFloat3 13s ease-in-out infinite 0.8s;
+}
+@keyframes orbFloat1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(40px,-30px) scale(1.1); } }
+@keyframes orbFloat2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-32px,26px) scale(0.92); } }
+@keyframes orbFloat3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(22px,22px) scale(1.06); } }
+/* 暗色下光球更柔，避免过曝 */
+html.dark .fx-orbs i { opacity: 0.35; }
+
+/* ---------- 旋转发光边框（Glow Border） ---------- */
+/* 用法：给 .card 加 .fx-glow，内部第一层加 .fx-glow-inner
+   伪元素 conic 渐变旋转，内层用卡片底色遮住中心只露一圈光 */
+.fx-glow { position: relative; border-color: transparent !important; }
+/* overflow:hidden 裁切旋转的方形伪元素，避免露出尖角 */
+.card.fx-glow { padding: 0; overflow: hidden; }
+.card.fx-glow > .fx-glow-inner { padding: var(--pad); border-radius: calc(var(--radius) - 2px); }
+/* inset:-50% 让伪元素远大于卡片，旋转时始终覆盖全周；配色用单色系
+   (accent / accent-hover + 大量 transparent)，光线沿边框流动而非整块色旋转 */
+.fx-glow::before {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  background: conic-gradient(from 0deg,
+    transparent 0%, var(--accent) 8%, transparent 24%,
+    transparent 50%, var(--accent-hover) 58%, transparent 74%, transparent 100%);
+  animation: fxGlowSpin 5s linear infinite;
+  z-index: 0;
+}
+.fx-glow > * { position: relative; z-index: 1; }
+.fx-glow-inner {
+  position: relative;
+  background: var(--card);
+  border-radius: calc(var(--radius) - 2px);
+  margin: 2px;
+  z-index: 1;
+}
+@keyframes fxGlowSpin { to { transform: rotate(360deg); } }
+/* 发光边框仅在「需要强调」时出现，常态可关 */
+.fx-glow.idle::before { animation: none; opacity: 0; }
+
+/* ---------- 毛玻璃（Glassmorphism） ---------- */
+.fx-glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px) saturate(1.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  border-color: var(--glass-border);
+}
+
+/* ---------- 呼吸光圈（Breathe Glow） ---------- */
+/* 在线 / 剩余状态点的脉冲呼吸，用 ring 色发散 */
+.fx-breathe { animation: fxBreathe 2.4s ease-in-out infinite; }
+@keyframes fxBreathe {
+  0%,100% { box-shadow: 0 0 0 0 var(--ring); }
+  50% { box-shadow: 0 0 0 7px transparent; }
+}
+/* badge 的状态点呼吸更明显 */
+.badge.ok .dot {
+  box-shadow: 0 0 0 0 var(--success-soft);
+  animation: fxDotPulse 2.2s ease-in-out infinite;
+}
+@keyframes fxDotPulse {
+  0%,100% { box-shadow: 0 0 0 0 var(--success-soft); transform: scale(1); }
+  50% { box-shadow: 0 0 0 6px transparent; transform: scale(1.15); }
+}
+
+/* ---------- 粒子上升（Particle Up） ---------- */
+/* 用法：领取成功时给目标容器加 .fx-particles，JS 注入若干 <i class="p"> */
+.fx-particles { position: relative; overflow: visible; }
+.fx-particles .p {
+  position: absolute;
+  bottom: 0;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--success);
+  pointer-events: none;
+  animation: fxParticleUp 1.5s ease-out forwards;
+}
+@keyframes fxParticleUp {
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translateY(-64px) scale(0.2); opacity: 0; }
+}
+
+/* ---------- 弹性缩放悬停（Elastic Scale Hover） ---------- */
+/* 统计卡片 hover 时带 overshoot 回弹，比普通 translateY 更活泼 */
+.card.fx-elastic {
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow var(--tr-mid), border-color var(--tr-mid);
+}
+.card.fx-elastic:hover {
+  transform: translateY(-3px) scale(1.012);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-2);
+}
+
+/* ---------- 按钮微光扫过（Shimmer） ---------- */
+/* 主按钮上斜向光带循环扫过，CTA 更有引导力 */
+.btn.fx-shimmer { position: relative; overflow: hidden; }
+.btn.fx-shimmer::after {
+  content: "";
+  position: absolute;
+  top: 0; left: -130%;
+  width: 60%; height: 100%;
+  background: linear-gradient(105deg, transparent, rgba(255,255,255,0.32), transparent);
+  animation: fxShimmer 3s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes fxShimmer {
+  0% { left: -130%; }
+  45%,100% { left: 130%; }
+}
+/* 暗色下扫光更亮一点，提升对比 */
+html.dark .btn.fx-shimmer::after {
+  background: linear-gradient(105deg, transparent, rgba(255,255,255,0.22), transparent);
+}
+
+/* ---------- 输入框聚焦呼吸（聚焦态增强） ---------- */
+/* 保留单层 ring 约定，仅在 focus 时叠加极淡的呼吸节奏 */
+.input.fx-focus-breathe:focus {
+  animation: fxFocusBreathe 2.4s ease-in-out infinite;
+}
+@keyframes fxFocusBreathe {
+  0%,100% { box-shadow: 0 0 0 3px var(--ring); }
+  50% { box-shadow: 0 0 0 4px var(--ring); }
+}
+
+/* ---------- 内容容器适配光球背景 ---------- */
+/* 有光球背景时，正文层需提上来 */
+.fx-orbs + * { position: relative; z-index: 1; }
+.has-orbs { position: relative; }
 
 /* ---------- 动效可关 ---------- */
 @media (prefers-reduced-motion: reduce) {

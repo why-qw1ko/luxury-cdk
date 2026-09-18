@@ -5,10 +5,10 @@
     <div class="card" style="padding:24px">
       <div class="field" style="margin-bottom:18px">
         <label for="code">领取 CDK</label>
-        <input class="input" id="code" placeholder="请输入领取 CDK" style="padding:14px;font-size:16px;letter-spacing:0.5px;text-transform:uppercase" autocomplete="off" spellcheck="false"/>
+        <input class="input fx-focus-breathe" id="code" placeholder="请输入领取 CDK" style="padding:14px;font-size:16px;letter-spacing:0.5px;text-transform:uppercase" autocomplete="off" spellcheck="false"/>
         <span class="hint">不区分大小写，横线可省略</span>
       </div>
-      <button class="btn primary" id="claimBtn" style="width:100%;padding:13px;font-size:15px">立即领取</button>
+      <button class="btn primary fx-shimmer" id="claimBtn" style="width:100%;padding:13px;font-size:15px">立即领取</button>
     </div>
     <div id="claimResult" style="margin-top:12px"></div>`;
 
@@ -89,6 +89,23 @@
     });
   }
 
+  /** 领取成功时往卡片底部迸发粒子（参考 css-effects-hub · Particle Up） */
+  function spawnParticles(card) {
+    if (!card) return;
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    card.querySelectorAll(".p").forEach((p) => p.remove());
+    for (let i = 0; i < 14; i++) {
+      const p = document.createElement("i");
+      p.className = "p";
+      p.style.left = (6 + Math.random() * 88) + "%";
+      p.style.animationDelay = (Math.random() * 0.5).toFixed(2) + "s";
+      p.style.background = Math.random() > 0.5 ? "var(--success)" : "var(--accent)";
+      p.style.zIndex = "2";
+      card.appendChild(p);
+    }
+    setTimeout(() => card.querySelectorAll(".p").forEach((p) => p.remove()), 1800);
+  }
+
   async function doClaim() {
     const code = input.value.trim();
     if (!code) { toast("请输入领取 CDK", "err"); return; }
@@ -97,17 +114,20 @@
     try {
       const r = await api("/api/claims", { method: "POST", body: JSON.stringify({ code }) });
       result.innerHTML = `
-        <div class="card" style="border-color:rgba(16,185,129,.35)">
-          <div class="row" style="gap:10px;align-items:flex-start">
-            <div class="stat-icon" style="background:var(--success-soft);flex-shrink:0">${ICON_OK}</div>
-            <div style="min-width:0">
-              <div style="font-weight:600;color:var(--success);font-size:15px">领取成功</div>
-              <div class="weak" style="font-size:12.5px;margin-top:2px;overflow-wrap:anywhere">${esc(r.project)} · ${esc(r.claimed_at)}</div>
+        <div class="card fx-glow fx-particles" id="claimOkCard" style="margin-top:4px">
+          <div class="fx-glow-inner" style="padding:20px">
+            <div class="row" style="gap:10px;align-items:flex-start">
+              <div class="stat-icon fx-breathe" style="background:var(--success-soft);flex-shrink:0">${ICON_OK}</div>
+              <div style="min-width:0">
+                <div style="font-weight:600;color:var(--success);font-size:15px">领取成功</div>
+                <div class="weak" style="font-size:12.5px;margin-top:2px;overflow-wrap:anywhere">${esc(r.project)} · ${esc(r.claimed_at)}</div>
+              </div>
             </div>
+            ${renderContent(r.content)}
           </div>
-          ${renderContent(r.content)}
         </div>`;
       bindCopyButtons(result);
+      spawnParticles(document.getElementById("claimOkCard"));
       input.value = "";
       input.focus(); // 连续领取时不用再点一下输入框
     } catch (e) {
