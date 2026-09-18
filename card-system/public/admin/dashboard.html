@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>概览 · 卡密发放后台</title>
+  <link rel="stylesheet" href="/css/app.css"/>
+</head>
+<body data-page="dashboard">
+  <div class="page">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title" id="pageTitle">加载中…，管理员</h1>
+        <p class="page-sub">卡密发放数据概览</p>
+      </div>
+      <div class="row">
+        <span class="tag" id="lastUpdated">—</span>
+      </div>
+    </header>
+
+    <section class="grid grid-stats" id="statCards"></section>
+
+    <div class="grid" style="grid-template-columns: 2fr 1fr;margin-top:16px">
+      <div class="card">
+        <div class="row between" style="margin-bottom:16px">
+          <div>
+            <h2 class="card-title">领取趋势</h2>
+            <div class="card-hint">近 14 天每日领取数量</div>
+          </div>
+          <span class="pill neutral">14 天</span>
+        </div>
+        <div id="trendChart" style="height:240px"></div>
+      </div>
+
+      <div class="card" style="display:flex;flex-direction:column">
+        <h2 class="card-title">领取排行</h2>
+        <div class="card-hint">按已领取数量排序</div>
+        <ul class="rank-list" id="rankList" style="margin-top:8px;flex:1"></ul>
+      </div>
+    </div>
+
+    <div class="grid" style="grid-template-columns: 1fr 1fr;margin-top:16px">
+      <div class="card">
+        <div class="row between">
+          <div>
+            <h2 class="card-title">项目领取分布</h2>
+            <div class="card-hint">各项目累计领取占比</div>
+          </div>
+        </div>
+        <div class="grid grid-2" style="align-items:center;gap:8px;margin-top:8px">
+          <div id="donutChart" style="height:190px"></div>
+          <div id="donutLegend"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row between">
+          <div>
+            <h2 class="card-title">最近领取</h2>
+            <div class="card-hint">最新 8 条领取记录</div>
+          </div>
+          <a class="btn sm ghost" href="/admin/received.html">查看全部</a>
+        </div>
+        <ul class="rank-list" id="recentList" style="margin-top:8px"></ul>
+      </div>
+    </div>
+  </div>
+
+  <div id="dock"></div>
+  <script src="/admin/js/common.js"></script>
+  <script src="/admin/js/dashboard.js"></script>
+</body>
+</html>

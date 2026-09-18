@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>卡密兑换</title>
+  <link rel="stylesheet" href="/css/app.css"/>
+  <style>
+    .claim-hero { max-width: 520px; margin: 0 auto; padding: 40px 16px 60px; }
+    @media (max-width: 480px){ .claim-hero { padding-top: 20px; } }
+  </style>
+</head>
+<body>
+  <div class="claim-hero">
+    <div style="text-align:center;margin-bottom:24px">
+      <div class="stat-icon" style="width:52px;height:52px;margin:0 auto">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>
+      </div>
+      <h1 class="page-title" style="font-size:22px;margin-top:16px">卡密兑换</h1>
+      <p class="page-sub">输入卡密，兑换您的权益</p>
+    </div>
+
+    <div id="claimBox"></div>
+
+    <div class="card" style="margin-top:16px;padding:16px 20px">
+      <div class="weak" style="font-size:12.5px">进行中的兑换项目</div>
+      <div id="projectList" style="margin-top:10px">
+        <div class="weak" style="font-size:12.5px">加载中…</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/admin/js/common.js"></script>
+  <script src="/js/claim.js"></script>
+</body>
+</html>
