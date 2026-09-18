@@ -21,6 +21,7 @@
   --danger-soft: #FEF2F2;
   --border: #ECEEF2;
   --border-2: #E5E7EB;
+  --ring: rgba(59, 130, 246, 0.22);   /* focus ring：主色 3px 半透明，shadcn 风格 */
   --soft-bg: #F9FAFB;      /* 输入框 / 嵌套面板底色 */
   --hover-bg: #F3F4F6;     /* 行 / 按钮 hover */
   --overlay-bg: rgba(17, 24, 40, 0.5);
@@ -54,6 +55,7 @@ html.dark {
   --danger-soft: rgba(248, 113, 113, 0.12);
   --border: #232936;
   --border-2: #2B3242;
+  --ring: rgba(91, 147, 255, 0.28);
   --soft-bg: #161B24;
   --hover-bg: #1B2230;
   --overlay-bg: rgba(0, 0, 0, 0.62);
@@ -83,6 +85,47 @@ input, textarea, select { font-family: inherit; color-scheme: inherit; }
 /* ---------- 页面入场 ---------- */
 .page { animation: pageIn var(--tr-mid) both; }
 @keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* 卡片级联入场：同一 grid 内的卡片依次浮现 */
+@keyframes cardIn { from { opacity: 0; transform: translateY(10px) scale(0.99); } to { opacity: 1; transform: none; } }
+.grid > .card, .grid-stats > .card { animation: cardIn 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+.grid > .card:nth-child(2), .grid-stats > .card:nth-child(2) { animation-delay: 0.06s; }
+.grid > .card:nth-child(3), .grid-stats > .card:nth-child(3) { animation-delay: 0.12s; }
+.grid > .card:nth-child(n+4) { animation-delay: 0.18s; }
+
+/* 表格行级联入场：前 12 行逐行浮现，之后统一延迟 */
+.tbl tbody tr:nth-child(1) { animation-delay: 0s; }
+.tbl tbody tr:nth-child(2) { animation-delay: 0.025s; }
+.tbl tbody tr:nth-child(3) { animation-delay: 0.05s; }
+.tbl tbody tr:nth-child(4) { animation-delay: 0.075s; }
+.tbl tbody tr:nth-child(5) { animation-delay: 0.1s; }
+.tbl tbody tr:nth-child(6) { animation-delay: 0.125s; }
+.tbl tbody tr:nth-child(7) { animation-delay: 0.15s; }
+.tbl tbody tr:nth-child(8) { animation-delay: 0.175s; }
+.tbl tbody tr:nth-child(n+9) { animation-delay: 0.2s; }
+
+/* 排行 / 记录列表级联 */
+.rank-item:nth-child(1) { animation-delay: 0s; }
+.rank-item:nth-child(2) { animation-delay: 0.04s; }
+.rank-item:nth-child(3) { animation-delay: 0.08s; }
+.rank-item:nth-child(4) { animation-delay: 0.12s; }
+.rank-item:nth-child(n+5) { animation-delay: 0.16s; }
+
+/* 图表动效 */
+@keyframes drawLine { to { stroke-dashoffset: 0; } }
+@keyframes chartFade { to { opacity: 1; } }
+.chart-line {
+  stroke-dasharray: 1; stroke-dashoffset: 1;
+  animation: drawLine 0.9s ease-out 0.15s forwards;
+}
+.chart-area { opacity: 0; animation: chartFade 0.6s ease 0.55s forwards; }
+.chart-dot { opacity: 0; animation: chartFade 0.25s ease forwards; }
+.chart-seg { animation: segGrow 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+@keyframes segGrow { from { stroke-dasharray: 0 var(--c); } }
+
+/* 底部 dock 滑入 */
+@keyframes dockIn { from { opacity: 0; transform: translateX(-50%) translateY(18px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+.dock { animation: dockIn 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) 0.1s both; }
 
 /* ---------- Layout ---------- */
 .page {
@@ -175,11 +218,13 @@ input, textarea, select { font-family: inherit; color-scheme: inherit; }
 .btn.danger:hover { background: var(--danger-soft); border-color: var(--danger); }
 .btn.sm { padding: 5px 10px; font-size: 12px; }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
-.btn:focus-visible, .input:focus-visible, .tab:focus-visible {
+.btn:focus-visible, .tab:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 2px;
 }
+/* 输入框不走 outline 焦点环（:focus 里已有统一的 3px ring），避免双层圈 */
+.input:focus-visible { outline: none; }
 
-/* ---------- Inputs ---------- */
+/* ---------- Inputs（shadcn 风格：无 outline，focus 只有一层 3px 半透明 ring） ---------- */
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
 .field > label { font-size: 13px; font-weight: 500; color: var(--text); }
 .field .req { color: var(--danger); }
@@ -193,13 +238,31 @@ input, textarea, select { font-family: inherit; color-scheme: inherit; }
   color: var(--text);
   background: var(--card);
   outline: none;
+  box-shadow: none;
   transition: border-color var(--tr-fast), box-shadow var(--tr-fast), background var(--tr-fast);
 }
-.input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.input:hover:not(:focus) { border-color: var(--text-3); }
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--ring);
+  outline: none;
+}
 textarea.input { resize: vertical; min-height: 90px; }
 input::placeholder, textarea::placeholder { color: var(--text-3); }
 /* flex 行内的输入框允许收缩（否则 input 的默认 size 会把同行按钮挤出屏幕） */
 .row > .input, .row > input.input, .row > select.input { flex: 1 1 auto; min-width: 0; }
+/* select：去掉原生外观，换成 shadcn 风格的自定义箭头 */
+select.input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 32px;
+  cursor: pointer;
+}
+/* 原生表单控件（radio / checkbox）跟随主题色 */
+input[type="radio"], input[type="checkbox"] { accent-color: var(--accent); }
 
 /* ---------- Toggle switch ---------- */
 .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }

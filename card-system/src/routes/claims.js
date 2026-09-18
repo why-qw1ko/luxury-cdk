@@ -82,6 +82,8 @@ export function claimRouter() {
       `INSERT INTO claims (batch_id, claim_code_id, claim_code, content_id, content_type, content_payload, ip, claimed_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     );
+    // 领取后把内容回填到 CDK 上，让后台「领取 CDK」列表能直接看到每个码发出去的内容
+    const linkContent = db.prepare(`UPDATE claim_codes SET content_id = ? WHERE id = ?`);
 
     const ts = localStamp();
     const boundContentId = cc.content_id || null;
@@ -121,6 +123,8 @@ export function claimRouter() {
         ip,
         ts
       );
+      // 动态模式下 content_id 原本为 NULL，回填后 CDK 与内容双向可查
+      linkContent.run(delivered.id, cc.id);
     });
 
     try {

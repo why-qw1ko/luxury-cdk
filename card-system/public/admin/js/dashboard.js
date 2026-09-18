@@ -19,7 +19,7 @@ function drawAreaChart(el, labels, counts) {
   for (let s = 0; s <= steps; s++) {
     const v = Math.round((niceMax / steps) * s);
     const y = py(v);
-    grid += `<line x1="${L}" y1="${y}" x2="${W - R}" y2="${y}" stroke="#ECEEF2" stroke-width="1"/>`;
+    grid += `<line x1="${L}" y1="${y}" x2="${W - R}" y2="${y}" style="stroke:var(--border)" stroke-width="1"/>`;
   }
 
   let line = "";
@@ -31,26 +31,26 @@ function drawAreaChart(el, labels, counts) {
   const gid = "agrad" + Math.random().toString(36).slice(2, 7);
   let dots = "";
   counts.forEach((c, i) => {
-    if (c > 0) dots += `<circle cx="${px(i).toFixed(1)}" cy="${py(c).toFixed(1)}" r="3" fill="#fff" stroke="#3B82F6" stroke-width="2"/>`;
+    if (c > 0) dots += `<circle class="chart-dot" style="fill:var(--card);stroke:var(--accent);animation-delay:${(0.35 + i * 0.04).toFixed(2)}s" cx="${px(i).toFixed(1)}" cy="${py(c).toFixed(1)}" r="3" stroke-width="2"/>`;
   });
   // x 轴标签
   let xlabels = "";
   labels.forEach((lb, i) => {
     const skip = n > 14 ? i % 2 !== 0 : false;
-    if (!skip) xlabels += `<text x="${px(i).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="10" fill="#9CA3AF">${lb}</text>`;
+    if (!skip) xlabels += `<text x="${px(i).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="10" style="fill:var(--text-3)">${lb}</text>`;
   });
 
   el.innerHTML = `
     <svg viewBox="0 0 ${W} ${H}" width="100%" height="240" preserveAspectRatio="none">
       <defs>
         <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.28"/>
-          <stop offset="100%" stop-color="#3B82F6" stop-opacity="0"/>
+          <stop offset="0%" style="stop-color:var(--accent);stop-opacity:0.28"/>
+          <stop offset="100%" style="stop-color:var(--accent);stop-opacity:0"/>
         </linearGradient>
       </defs>
       ${grid}
-      <path d="${area}" fill="url(#${gid})"/>
-      <path d="${line}" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path class="chart-area" d="${area}" fill="url(#${gid})"/>
+      <path class="chart-line" pathLength="1" d="${line}" fill="none" style="stroke:var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       ${dots}
       ${xlabels}
     </svg>`;
@@ -78,16 +78,16 @@ function drawDonut(el, legendEl, data) {
     const len = frac * C;
     const gap = 2.5;
     const dash = Math.max(len - gap, 0.5);
-    const seg = `<circle r="${R}" cx="110" cy="105" fill="none" stroke="${DONUT_COLORS[i % DONUT_COLORS.length]}" stroke-width="${half}" stroke-dasharray="${dash} ${C - dash}" stroke-dashoffset="${-acc}" transform="rotate(-90 110 105)"/>`;
+    const seg = `<circle class="chart-seg" style="--c:${C.toFixed(1)};animation-delay:${(i * 0.09).toFixed(2)}s" r="${R}" cx="110" cy="105" fill="none" stroke="${DONUT_COLORS[i % DONUT_COLORS.length]}" stroke-width="${half}" stroke-dasharray="${dash} ${C - dash}" stroke-dashoffset="${-acc}" transform="rotate(-90 110 105)"/>`;
     acc += len;
     return { seg, d, frac, color: DONUT_COLORS[i % DONUT_COLORS.length] };
   });
   el.innerHTML = `
     <svg viewBox="0 0 220 210" width="100%">
-      <circle cx="110" cy="105" r="${R}" fill="none" stroke="#F3F4F6" stroke-width="${half}"/>
+      <circle cx="110" cy="105" r="${R}" fill="none" style="stroke:var(--hover-bg)" stroke-width="${half}"/>
       ${segs.map((s) => s.seg).join("")}
-      <text x="110" y="98" text-anchor="middle" font-size="24" font-weight="600" fill="#111827">${fmt(totals)}</text>
-      <text x="110" y="118" text-anchor="middle" font-size="11" fill="#9CA3AF">累计领取</text>
+      <text x="110" y="98" text-anchor="middle" font-size="24" font-weight="600" style="fill:var(--text)">${fmt(totals)}</text>
+      <text x="110" y="118" text-anchor="middle" font-size="11" style="fill:var(--text-3)">累计领取</text>
     </svg>`;
   legendEl.innerHTML = segs
     .map((s) => `
@@ -130,9 +130,11 @@ function renderStats(s) {
         ${it.pillC != null && it.pillArr ? pill(it.pillC) : ""}
       </div>
       <div class="stat-label">${it.label}</div>
-      <div class="stat-value num">${fmt(it.value)}</div>
+      <div class="stat-value num" data-target="${it.value}">0</div>
       <div class="stat-sub">${it.sub || ""}</div>
     </div>`).join("");
+  // 数字从 0 滚动到目标值
+  document.querySelectorAll("#statCards .stat-value").forEach((el) => countUp(el, el.dataset.target));
 }
 
 function renderRanking(list) {

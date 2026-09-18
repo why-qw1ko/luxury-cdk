@@ -206,6 +206,11 @@ export async function initDb() {
   if (!tableHasColumn("batches", "bind_mode")) {
     db.exec(`ALTER TABLE batches ADD COLUMN bind_mode TEXT NOT NULL DEFAULT 'dynamic'`);
   }
+  // simple_mode 列为已废弃功能的遗留（2026-09 短暂上线后按需求移除），
+  // 列保留避免复杂迁移，代码层不再读写。
+  if (!tableHasColumn("batches", "simple_mode")) {
+    db.exec(`ALTER TABLE batches ADD COLUMN simple_mode INTEGER NOT NULL DEFAULT 0`);
+  }
   if (!tableHasColumn("claim_codes", "content_id")) {
     db.exec(`ALTER TABLE claim_codes ADD COLUMN content_id INTEGER REFERENCES contents(id)`);
   }
@@ -238,6 +243,15 @@ export async function initDb() {
       `INSERT INTO users (id, username, password_hash, role, status) VALUES (1, 'admin', ?, 'admin', 'active')`
     ).run(hash || bcrypt.hashSync(defaultPassword, 10));
   }
+
+  // 历史数据补齐：旧版本动态发放领取后不回填 content_id，
+  // 用领取记录把已使用 CDK 关联到实际发出去的内容（幂等，无缺失时影响 0 行）
+  db.exec(`
+    UPDATE claim_codes
+    SET content_id = (SELECT cl.content_id FROM claims cl WHERE cl.claim_code_id = claim_codes.id)
+    WHERE status = 'claimed' AND content_id IS NULL
+      AND EXISTS (SELECT 1 FROM claims cl WHERE cl.claim_code_id = claim_codes.id)
+  `);
 
   return db;
 }
