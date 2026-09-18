@@ -7,6 +7,7 @@ import { batchRouter } from "./routes/batches.js";
 import { claimRouter } from "./routes/claims.js";
 import { dashboardRouter } from "./routes/dashboard.js";
 import { usersRouter } from "./routes/users.js";
+import { settingsRouter } from "./routes/settings.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, "..", "public");
@@ -40,6 +41,7 @@ async function main() {
   app.use("/api/claims", claimRouter());
   app.use("/api/dashboard", dashboardRouter());
   app.use("/api/users", usersRouter());
+  app.use("/api/settings", settingsRouter());
 
   app.use(express.static(PUBLIC_DIR));
 

@@ -4,6 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>登录 · 卡密发放后台</title>
+  <script src="/js/theme.js"></script>
   <link rel="stylesheet" href="/css/app.css"/>
 </head>
 <body>
@@ -12,7 +13,7 @@
       <div class="stat-icon" style="width:46px;height:46px;margin:0 auto">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><path d="M12 2v6"></path><path d="M16.24 7.76l-4.24 4.24"></path><path d="M7.76 7.76 12 12"></path><path d="M2 12h6"></path><path d="M16 12h6"></path><path d="M12 16v6"></path></svg>
       </div>
-      <h1 class="page-title" style="font-size:22px;margin-top:14px">卡密发放后台</h1>
+      <h1 class="page-title" id="siteName" style="font-size:22px;margin-top:14px">卡密发放后台</h1>
       <p class="page-sub">登录以管理项目与卡密发放</p>
     </div>
 
@@ -33,6 +34,20 @@
   </div>
 
   <script src="/admin/js/common.js"></script>
+  <script src="/js/ui.js"></script>
   <script src="/admin/js/login.js"></script>
+  <script>
+    // 登录页没有底部 dock，主题切换放右上角
+    (function () {
+      const btn = document.createElement("button");
+      btn.className = "dock-btn theme-toggle";
+      btn.title = "切换亮 / 暗主题";
+      btn.style.cssText = "position:fixed;top:16px;right:16px;z-index:50";
+      btn.innerHTML = '<svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>'
+        + '<svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+      btn.onclick = () => window.toggleTheme();
+      document.body.appendChild(btn);
+    })();
+  </script>
 </body>
 </html>

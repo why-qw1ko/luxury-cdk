@@ -48,6 +48,11 @@ function displayName(u) {
   return u && u.role === "admin" ? "管理员" : (u ? u.username : "管理员");
 }
 
+const ICON_TOAST_OK = `<svg class="toast-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>`;
+const ICON_TOAST_ERR = `<svg class="toast-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`;
+const ICON_TOAST_INFO = `<svg class="toast-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>`;
+const ICON_TOAST_CLOSE = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`;
+
 function toast(msg, type = "ok") {
   const host = document.querySelector(".toasts") || (() => {
     const d = document.createElement("div");
@@ -56,10 +61,21 @@ function toast(msg, type = "ok") {
     return d;
   })();
   const el = document.createElement("div");
-  el.className = "toast " + (type === "ok" ? "ok" : type === "err" ? "err" : "");
-  el.textContent = msg;
+  const icon =
+    type === "err" ? ICON_TOAST_ERR
+    : type === "info" ? ICON_TOAST_INFO
+    : ICON_TOAST_OK;
+  el.className = "toast " + (type === "ok" ? "ok" : type === "err" ? "err" : "info");
+  el.innerHTML = `${icon}<div class="toast-msg"></div><button class="toast-close" title="关闭">${ICON_TOAST_CLOSE}</button>`;
+  el.querySelector(".toast-msg").textContent = msg;
+  const dismiss = () => {
+    if (!el.isConnected) return;
+    el.classList.add("out");
+    setTimeout(() => el.remove(), 180);
+  };
+  el.querySelector(".toast-close").onclick = dismiss;
   host.appendChild(el);
-  setTimeout(() => el.remove(), 2600);
+  setTimeout(dismiss, 3200);
 }
 
 function esc(s) {
@@ -162,11 +178,11 @@ function showCodesResult(codes, actionLabel = "生成", batchName = "CDK") {
          <table class="tbl"><tbody>${list.map((c, i) => `
            <tr>
              <td class="num weak" style="width:52px">${i + 1}</td>
-             <td class="payload" style="overflow-wrap:anywhere">${esc(c.display || c.code)}</td>
+             <td class="payload limit" title="${esc(c.display || c.code)}">${esc(c.display || c.code)}</td>
              <td class="col-actions">${copyBtn(c.display || c.code)}</td>
            </tr>`).join("")}</tbody></table>
        </div>`
-    : `<div style="max-height:280px;overflow:auto;border:1px solid var(--border);border-radius:10px;background:#F9FAFB;padding:12px 14px">
+    : `<div style="max-height:280px;overflow:auto;border:1px solid var(--border);border-radius:10px;background:var(--soft-bg);padding:12px 14px">
          <div class="payload" style="line-height:2;overflow-wrap:anywhere;white-space:pre-wrap;user-select:all">${esc(allText)}</div>
        </div>`;
 
@@ -216,9 +232,13 @@ async function renderDock(active) {
   const users = `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>`;
   const plus = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 12h8"></path><path d="M12 8v8"></path></svg>`;
   const user = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+  const sun = `<svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>`;
+  const moon = `<svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>`;
+  const gear = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
 
-  const adminItem = u.role === "admin"
-    ? `<a class="dock-btn ${active === "users" ? "active" : ""}" href="/admin/users.html" title="用户管理">${icon(users)}</a>`
+  const adminItemHtml = u.role === "admin"
+    ? `<a class="dock-btn ${active === "users" ? "active" : ""}" href="/admin/users.html" title="用户管理">${icon(users)}</a>
+       <a class="dock-btn ${active === "settings" ? "active" : ""}" href="/admin/settings.html" title="站点设置">${icon(gear)}</a>`
     : "";
 
   host.innerHTML = `
@@ -226,15 +246,23 @@ async function renderDock(active) {
       <a class="dock-btn ${active === "dashboard" ? "active" : ""}" href="/admin/dashboard.html" title="概览">${icon(bar)}</a>
       <a class="dock-btn ${active === "project" ? "active" : ""}" href="/admin/project.html" title="项目">${icon(folder)}</a>
       <a class="dock-btn ${active === "received" ? "active" : ""}" href="/admin/received.html" title="领取记录">${icon(bag)}</a>
-      ${adminItem}
+      ${adminItemHtml}
       <div class="dock-divider"></div>
       <button class="dock-btn dock-plus" id="dockNew" title="新建项目">${icon(plus)}</button>
+      <button class="dock-btn theme-toggle" id="dockTheme" title="切换亮 / 暗主题">${sun}${moon}</button>
       <div class="dock-divider"></div>
       <button class="dock-btn" id="dockUser" title="退出登录">${icon(user)}</button>
     </nav>`;
   document.getElementById("dockNew").onclick = () => window.__openNewProject && window.__openNewProject();
-  document.getElementById("dockUser").onclick = () => {
-    if (confirm("确认退出登录？")) { tokenStore.clear(); location.href = "/admin/login.html"; }
+  document.getElementById("dockTheme").onclick = () => {
+    const dark = window.toggleTheme();
+    toast(dark === "dark" ? "已切换到暗色主题" : "已切换到亮色主题", "info");
+  };
+  document.getElementById("dockUser").onclick = async () => {
+    if (await confirmDialog({ title: "退出登录", description: "确定要退出当前账号吗？", confirmText: "退出", danger: true, icon: "alert" })) {
+      tokenStore.clear();
+      location.href = "/admin/login.html";
+    }
   };
 }
 
@@ -552,7 +580,44 @@ window.ensureUser = ensureUser;
 window.displayName = displayName;
 window.getCurrentUser = () => currentUser;
 
+/* ---------- 站点设置（公开接口，登录前也能读取） ---------- */
+window.__siteSettings = null;
+async function loadSiteSettings() {
+  if (window.__siteSettings) return window.__siteSettings;
+  try {
+    const res = await fetch("/api/settings");
+    const data = await res.json();
+    window.__siteSettings = data.settings || null;
+  } catch { window.__siteSettings = null; }
+  applySiteSettings();
+  return window.__siteSettings;
+}
+
+/** 把站点名称 / 公告 / 页脚应用到页面（页面里放 #siteName / #siteNotice / #siteFooter 即可生效） */
+function applySiteSettings() {
+  const s = window.__siteSettings;
+  if (!s) return;
+  if (s.site_name) {
+    const parts = document.title.split(" · ");
+    const pageTitle = parts[0] === s.site_name ? parts.slice(1).join(" · ") || s.site_name : parts[0];
+    document.title = pageTitle === s.site_name ? s.site_name : `${pageTitle} · ${s.site_name}`;
+    const nameEl = document.getElementById("siteName");
+    if (nameEl) nameEl.textContent = s.site_name;
+  }
+  const notice = document.getElementById("siteNotice");
+  if (notice && s.site_notice) {
+    notice.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg><span>${esc(s.site_notice)}</span>`;
+    notice.classList.remove("hidden");
+  }
+  const footer = document.getElementById("siteFooter");
+  if (footer && s.site_footer) {
+    footer.textContent = s.site_footer;
+    footer.classList.remove("hidden");
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const page = document.body.dataset.page;
   if (page) renderDock(page);
+  loadSiteSettings();
 });

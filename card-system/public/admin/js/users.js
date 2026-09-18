@@ -24,7 +24,7 @@ async function load() {
     return `
     <tr>
       <td>
-        <div class="clamp-2" style="font-weight:500" title="${esc(u.username)}">${esc(u.username)}${isMe ? ' <span class="tag solid">我</span>' : ""}</div>
+        <div class="trunc" style="font-weight:500" title="${esc(u.username)}">${esc(u.username)}${isMe ? ' <span class="tag solid">我</span>' : ""}</div>
         <div class="weak trunc" style="font-size:12px" title="${esc(u.name)}">${esc(u.name)}</div>
       </td>
       <td>${isAdmin ? `<span class="badge" style="background:var(--accent-soft);color:var(--accent)">管理员</span>` : `<span class="badge off">普通用户</span>`}</td>
@@ -53,20 +53,38 @@ async function load() {
 
 async function action(u, act) {
   if (act === "ban") {
-    if (!confirm(`确认封禁用户「${u.username}」？封禁后其将无法登录后台。`)) return;
+    const ok = await confirmDialog({
+      title: `封禁用户「${u.username}」`,
+      description: "封禁后其将无法登录后台，其已分发的 CDK 不受影响。",
+      confirmText: "封禁",
+      danger: true,
+    });
+    if (!ok) return;
     await update(u.id, { status: "banned" });
     toast("已封禁用户");
   } else if (act === "unban") {
     await update(u.id, { status: "active" });
     toast("已解封用户");
   } else if (act === "pwd") {
-    const pwd = prompt(`为「${u.username}」设置新密码（至少6位）：`);
+    const pwd = await inputDialog({
+      title: `重置「${u.username}」的密码`,
+      label: "新密码",
+      placeholder: "至少 6 位",
+      confirmText: "重置密码",
+      validate: (v) => (v && v.length >= 6 ? "" : "密码至少 6 位"),
+    });
     if (!pwd) return;
-    if (pwd.length < 6) { toast("密码至少 6 位", "err"); return; }
     await update(u.id, { password: pwd });
     toast("密码已重置");
   } else if (act === "del") {
-    if (!confirm(`确认删除用户「${u.username}」？其所有项目、分发内容、领取 CDK 与领取记录将一并删除，不可恢复。`)) return;
+    const ok = await confirmDialog({
+      title: `删除用户「${u.username}」`,
+      description: "其所有项目、分发内容、领取 CDK 与领取记录将一并删除，不可恢复。",
+      confirmText: "删除",
+      danger: true,
+      icon: "trash",
+    });
+    if (!ok) return;
     try { await api(`/api/users/${u.id}`, { method: "DELETE" }); toast("用户已删除"); }
     catch (e) { toast(e.message, "err"); }
   }
