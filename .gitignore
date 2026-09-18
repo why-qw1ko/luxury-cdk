@@ -9,5 +9,8 @@ card-system/data/*.db-shm
 # 日志
 *.log
 
+# TRAE HTML 分享临时包
+.trae-html-share-packages/
+
 # 系统
 .DS_Store
