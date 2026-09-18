@@ -53,11 +53,13 @@ function renderProjectRows() {
   rows.innerHTML = list.map((b) => `
     <tr>
       <td style="min-width:180px;max-width:340px">
-        <div class="clamp-2" style="font-weight:500" title="${esc(b.name)}">${esc(b.name)}</div>
-        <div class="weak" style="font-size:12px">一码一用 · ${b.bind_mode === "bound" ? "一码一内容绑定" : "动态发放"}</div>
+        <div class="trunc" style="font-weight:500" title="${esc(b.name)}">${esc(b.name)}</div>
+        <div class="weak trunc" style="font-size:12px" title="${b.bind_mode === "bound" ? "一码一内容绑定" : "动态发放"}">一码一用 · ${b.bind_mode === "bound" ? "一码一内容绑定" : "动态发放"}</div>
       </td>
       <td style="max-width:220px">
-        ${b.tags.length ? `<div class="tag-stack">${b.tags.map((t) => `<span class="tag" title="${esc(t)}">${esc(t)}</span>`).join("")}</div>` : `<span class="weak">—</span>`}
+        ${b.tags.length
+          ? `<div class="row" style="gap:4px" title="${esc(b.tags.join("、"))}"><span class="tag trunc" style="max-width:120px">${esc(b.tags[0])}</span>${b.tags.length > 1 ? `<span class="tag">+${b.tags.length - 1}</span>` : ""}</div>`
+          : `<span class="weak">—</span>`}
       </td>
       <td class="num" style="font-weight:600">${fmt(b.remaining)}</td>
       <td class="num weak" style="font-size:12.5px">${fmt(b.codeAvailable)} / ${fmt(b.codeTotal)}</td>
@@ -188,11 +190,14 @@ async function openBatchModal(b) {
   renderBindModeTag();
   $("bindModeBtn").onclick = async () => {
     const next = b.bind_mode === "bound" ? "dynamic" : "bound";
-    const tip =
-      next === "bound"
-        ? "切换为一码一内容绑定？之后生成 / 导入 CDK 会按内容顺序一对一绑定，已生成的 CDK 不受影响。"
-        : "切换为动态发放？之后生成 / 导入 CDK 不再绑定内容，已绑定的 CDK 仍按绑定发放。";
-    if (!confirm(tip)) return;
+    const ok = await confirmDialog({
+      title: next === "bound" ? "切换为一码一内容绑定" : "切换为动态发放",
+      description: next === "bound"
+        ? "之后生成 / 导入 CDK 会按内容顺序一对一绑定，已生成的 CDK 不受影响。"
+        : "之后生成 / 导入 CDK 不再绑定内容，已绑定的 CDK 仍按绑定发放。",
+      confirmText: "切换",
+    });
+    if (!ok) return;
     try {
       const r = await api(`/api/batches/${b.id}`, {
         method: "PATCH",
@@ -206,7 +211,14 @@ async function openBatchModal(b) {
     } catch (e) { toast(e.message, "err"); }
   };
   $("delBatch").onclick = async () => {
-    if (!confirm(`确认删除项目「${b.name}」？`)) return;
+    const ok = await confirmDialog({
+      title: `删除项目「${b.name}」`,
+      description: "该项目下的分发内容、领取 CDK 与领取记录将一并删除，不可恢复。",
+      confirmText: "删除",
+      danger: true,
+      icon: "trash",
+    });
+    if (!ok) return;
     await api(`/api/batches/${b.id}`, { method: "DELETE" });
     toast("项目已删除");
     close(); loadList();
@@ -384,7 +396,7 @@ async function openBatchModal(b) {
         }</div>`
       : "";
     $("paneCodes").innerHTML = `
-      <div class="card" style="padding:14px 16px;background:#F9FAFB;margin-bottom:14px">
+      <div class="card" style="padding:14px 16px;background:var(--soft-bg);margin-bottom:14px">
         <div class="field" style="margin-bottom:12px">
           <label>批量生成 <span class="hint">16 位随机码，生成后可一键复制</span></label>
           <div class="row" style="gap:8px;flex-wrap:wrap">
@@ -532,7 +544,14 @@ async function openBatchModal(b) {
     }
     host.querySelectorAll("[data-del-code]").forEach((btn) => {
       btn.onclick = async () => {
-        if (!confirm("确认删除这个 CDK？")) return;
+        const ok = await confirmDialog({
+          title: "删除这个 CDK",
+          description: "删除后该码将无法领取，不可恢复。",
+          confirmText: "删除",
+          danger: true,
+          icon: "trash",
+        });
+        if (!ok) return;
         try {
           await api(`/api/batches/${b.id}/claim-codes/${btn.dataset.delCode}`, { method: "DELETE" });
           toast("CDK 已删除");
@@ -550,7 +569,7 @@ async function openBatchModal(b) {
         <td class="num weak">${i + 1}</td>
         <td class="payload">${esc(c.claim_code)}</td>
         <td><span class="tag">${esc(TYPE_LABEL[c.content_type] || c.content_type)}</span></td>
-        <td class="payload" style="max-width:240px;word-break:break-all">${esc(c.content_payload)}</td>
+        <td class="payload limit" title="${esc(c.content_payload)}">${esc(c.content_payload)}</td>
         <td class="num">${esc(c.ip || "—")}</td>
         <td class="num weak">${fullTime(c.claimed_at)}</td>
       </tr>`).join("") || `<tr><td colspan="6" class="weak" style="text-align:center">暂无领取记录</td></tr>`;

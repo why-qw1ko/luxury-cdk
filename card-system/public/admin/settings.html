@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>站点设置 · 卡密发放后台</title>
+  <script src="/js/theme.js"></script>
+  <link rel="stylesheet" href="/css/app.css"/>
+</head>
+<body data-page="settings">
+  <div class="page">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title" id="pageTitle">站点设置</h1>
+        <p class="page-sub">配置站点名称、前台公告与页脚，保存后立即生效（仅管理员可见本页）</p>
+      </div>
+    </header>
+
+    <div class="grid" style="grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)">
+      <div class="card">
+        <h2 class="card-title" style="margin-bottom:16px">基本信息</h2>
+        <form id="settingsForm">
+          <div class="field">
+            <label for="siteNameInput">站点名称 <span class="hint">显示在页面标题与登录页，32 字符以内</span></label>
+            <input class="input" id="siteNameInput" maxlength="32" placeholder="例如：福利发放中心"/>
+          </div>
+          <div class="field">
+            <label for="siteNoticeInput">前台公告 <span class="hint">显示在领取页顶部，留空则不显示，500 字以内</span></label>
+            <textarea class="input" id="siteNoticeInput" rows="3" placeholder="例如：每周五晚 8 点发放新一批 CDK，请留意公告。"></textarea>
+          </div>
+          <div class="field">
+            <label for="siteFooterInput">页脚文案 <span class="hint">显示在领取页底部，留空则不显示</span></label>
+            <input class="input" id="siteFooterInput" maxlength="200" placeholder="例如：仅供社区内部交流使用"/>
+          </div>
+          <div class="row" style="justify-content:flex-end;gap:10px">
+            <button class="btn" type="button" id="resetBtn">还原</button>
+            <button class="btn primary" type="submit" id="saveBtn">保存设置</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title" style="margin-bottom:6px">预览效果</h2>
+        <div class="card-hint" style="margin-bottom:14px">公告与页脚在用户领取页的呈现</div>
+        <div class="notice-bar" id="previewNotice">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+          <span id="previewNoticeText">公告内容会显示在这里</span>
+        </div>
+        <div class="site-footer" id="previewFooter">页脚文案会显示在这里</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="dock"></div>
+  <script src="/admin/js/common.js"></script>
+  <script src="/js/ui.js"></script>
+  <script src="/admin/js/settings.js"></script>
+</body>
+</html>
