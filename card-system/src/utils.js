@@ -43,7 +43,9 @@ export function publicBatch(b) {
     description: b.description,
     mode: b.mode,
     status: b.status,
+    owner_id: b.owner_id,
+    owner_name: b.owner_name,
     created_at: b.created_at,
-    created_by: b.created_by,
+    created_by: b.owner_name || b.created_by,
   };
 }

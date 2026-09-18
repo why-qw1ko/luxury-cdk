@@ -19,13 +19,17 @@
     <div class="card">
       <form id="loginForm">
         <div class="field">
-          <label>管理员密码</label>
-          <input class="input" id="password" type="password" placeholder="请输入后台密码" autocomplete="current-password" autofocus/>
+          <label>用户名</label>
+          <input class="input" id="username" type="text" placeholder="请输入用户名" autocomplete="username" value="admin"/>
+        </div>
+        <div class="field">
+          <label>密码</label>
+          <input class="input" id="password" type="password" placeholder="请输入密码" autocomplete="current-password" autofocus/>
         </div>
         <button class="btn primary" type="submit" id="btn" style="width:100%;padding:11px;font-size:14px">登 录</button>
       </form>
     </div>
-    <p class="weak" style="text-align:center;font-size:12px;margin-top:16px">单一管理员 · 密码登录</p>
+    <p class="weak" style="text-align:center;font-size:12px;margin-top:16px">管理员 / 普通用户 · 密码登录</p>
   </div>
 
   <script src="/admin/js/common.js"></script>

@@ -3,16 +3,25 @@ import { getDb } from "../db.js";
 import { requireAuth } from "../auth.js";
 import { batchStats, publicBatch } from "../utils.js";
 
+/** 返回当前用户可访问的项目，无权限则返回 null */
+function ownedBatch(db, batchId, req) {
+  const b = db.prepare(`SELECT * FROM batches WHERE id = ?`).get(batchId);
+  if (!b) return null;
+  if (req.user.role === "admin" || b.owner_id == req.user.uid) return b;
+  return null;
+}
+
 export function batchRouter() {
   const r = Router();
   r.use(requireAuth);
 
-  // 项目（批次）列表，含统计
+  // 项目列表（管理员全部，普通用户仅自己的）
   r.get("/", (req, res) => {
     const db = getDb();
-    const rows = db
-      .prepare(`SELECT * FROM batches ORDER BY id DESC`)
-      .all();
+    const isAdmin = req.user.role === "admin";
+    const rows = isAdmin
+      ? db.prepare(`SELECT * FROM batches ORDER BY id DESC`).all()
+      : db.prepare(`SELECT * FROM batches WHERE owner_id = ? ORDER BY id DESC`).all(req.user.uid);
     const list = rows.map((b) => {
       const s = batchStats(b.id);
       return { ...publicBatch(b), ...s };
@@ -23,12 +32,12 @@ export function batchRouter() {
   // 项目详情
   r.get("/:id", (req, res) => {
     const db = getDb();
-    const b = db.prepare(`SELECT * FROM batches WHERE id = ?`).get(req.params.id);
-    if (!b) return res.status(404).json({ ok: false, message: "项目不存在" });
+    const b = ownedBatch(db, req.params.id, req);
+    if (!b) return res.status(404).json({ ok: false, message: "项目不存在或无权访问" });
     res.json({ ok: true, batch: { ...publicBatch(b), ...batchStats(b.id) } });
   });
 
-  // 创建项目（基本设置 + 分发内容）
+  // 创建项目（归属当前用户）
   r.post("/", (req, res) => {
     const db = getDb();
     const body = req.body || {};
@@ -47,8 +56,8 @@ export function batchRouter() {
 
     const result = db
       .prepare(
-        `INSERT INTO batches (name, tags, start_time, end_time, limit_ip, description, mode)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO batches (name, tags, start_time, end_time, limit_ip, description, mode, owner_id, owner_name)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         name,
@@ -57,7 +66,9 @@ export function batchRouter() {
         endTime ? endTime.toISOString() : null,
         body.limit_ip ? 1 : 0,
         (body.description || "").trim(),
-        body.mode || "one_one"
+        body.mode || "one_one",
+        req.user.uid,
+        req.user.name
       );
 
     const batch = db
@@ -69,16 +80,17 @@ export function batchRouter() {
   // 删除项目
   r.delete("/:id", (req, res) => {
     const db = getDb();
-    const info = db.prepare(`DELETE FROM batches WHERE id = ?`).run(req.params.id);
-    if (info.changes === 0) return res.status(404).json({ ok: false, message: "项目不存在" });
+    const b = ownedBatch(db, req.params.id, req);
+    if (!b) return res.status(404).json({ ok: false, message: "项目不存在或无权访问" });
+    db.prepare(`DELETE FROM batches WHERE id = ?`).run(b.id);
     res.json({ ok: true });
   });
 
-  // 批量导入卡密（粘贴文本，自动去重）
+  // 批量导入卡密（仅能导入到自己的项目）
   r.post("/:id/cards/import", (req, res) => {
     const db = getDb();
-    const batch = db.prepare(`SELECT * FROM batches WHERE id = ?`).get(req.params.id);
-    if (!batch) return res.status(404).json({ ok: false, message: "项目不存在" });
+    const batch = ownedBatch(db, req.params.id, req);
+    if (!batch) return res.status(404).json({ ok: false, message: "项目不存在或无权访问" });
 
     const text = (req.body?.text || "").replace(/\r/g, "");
     const cards = text
@@ -95,16 +107,12 @@ export function batchRouter() {
       if (!seen.has(c)) { seen.add(c); uniqueInput.push(c); }
     }
 
-    // 应用层：排除已在库中的
     const existing = new Set(
       db.prepare(`SELECT code FROM cards`).all().map((x) => x.code)
     );
     const unique = uniqueInput.filter((c) => !existing.has(c));
 
-    // 兜底：依赖 code UNIQUE 约束，插入时捕获冲突，保证最终去重
-    const insert = db.prepare(
-      `INSERT INTO cards (batch_id, code) VALUES (?, ?)`
-    );
+    const insert = db.prepare(`INSERT INTO cards (batch_id, code) VALUES (?, ?)`);
     let inserted = 0;
     let fallbackDup = 0;
 
@@ -135,30 +143,34 @@ export function batchRouter() {
   // 项目的卡密清单
   r.get("/:id/cards", (req, res) => {
     const db = getDb();
+    const batch = ownedBatch(db, req.params.id, req);
+    if (!batch) return res.status(404).json({ ok: false, message: "项目不存在或无权访问" });
     const rows = db
       .prepare(`SELECT * FROM cards WHERE batch_id = ? ORDER BY id`)
-      .all(req.params.id);
+      .all(batch.id);
     res.json({ ok: true, list: rows });
   });
 
   // 项目的领取记录
   r.get("/:id/claims", (req, res) => {
     const db = getDb();
+    const batch = ownedBatch(db, req.params.id, req);
+    if (!batch) return res.status(404).json({ ok: false, message: "项目不存在或无权访问" });
     const rows = db
       .prepare(
         `SELECT c.id, c.code, c.ip, c.claimed_at
          FROM claims c WHERE c.batch_id = ?
          ORDER BY c.id DESC`
       )
-      .all(req.params.id);
+      .all(batch.id);
     res.json({ ok: true, list: rows });
   });
 
   // 导出 CSV
   r.get("/:id/export", (req, res) => {
     const db = getDb();
-    const batch = db.prepare(`SELECT * FROM batches WHERE id = ?`).get(req.params.id);
-    if (!batch) return res.status(404).json({ ok: false, message: "项目不存在" });
+    const batch = ownedBatch(db, req.params.id, req);
+    if (!batch) return res.status(404).json({ ok: false, message: "项目不存在或无权访问" });
 
     const cards = db
       .prepare(
@@ -180,10 +192,7 @@ export function batchRouter() {
     const csv = "\uFEFF" + [header, ...lines].join("\r\n");
 
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="batch_${batch.id}_cards.csv"`
-    );
+    res.setHeader("Content-Disposition", `attachment; filename="batch_${batch.id}_cards.csv"`);
     res.send(csv);
   });
 

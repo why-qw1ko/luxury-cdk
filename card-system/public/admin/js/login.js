@@ -1,5 +1,6 @@
 document.getElementById("loginForm").addEventListener("submit", async (e) => {
   e.preventDefault();
+  const username = document.getElementById("username").value.trim();
   const password = document.getElementById("password").value;
   const btn = document.getElementById("btn");
   btn.disabled = true; btn.textContent = "登录中…";
@@ -7,7 +8,7 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ username, password }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "登录失败");

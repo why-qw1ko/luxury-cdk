@@ -7,7 +7,8 @@ function fullTime(s) { if (!s) return "—"; const d = new Date(s); return `${St
 async function loadList() {
   if (!(await requireAuth())) return;
   window.__openNewProject = () => openNewProjectModal(loadList);
-  document.getElementById("pageTitle").textContent = `${greeting()}，管理员`;
+  const u = await ensureUser();
+  document.getElementById("pageTitle").textContent = `${greeting()}，${displayName(u)}`;
   document.getElementById("newProject").onclick = () => openNewProjectModal(loadList);
 
   const res = await api("/api/batches");

@@ -8,7 +8,8 @@ let filterProject = "all";
 async function load() {
   if (!(await requireAuth())) return;
   window.__openNewProject = () => openNewProjectModal(load);
-  document.getElementById("pageTitle").textContent = `${greeting()}，管理员`;
+  const u = await ensureUser();
+  document.getElementById("pageTitle").textContent = `${greeting()}，${displayName(u)}`;
 
   // 拉取全部项目领取记录
   const batches = await api("/api/batches");
