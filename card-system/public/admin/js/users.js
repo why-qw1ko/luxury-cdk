@@ -15,7 +15,7 @@ async function load() {
   const res = await api("/api/users");
   const rows = document.getElementById("userRows");
   if (!res.list.length) {
-    rows.innerHTML = `<tr><td colspan="8" class="weak" style="text-align:center;padding:40px">暂无用户</td></tr>`;
+    rows.innerHTML = `<tr><td colspan="9" class="weak" style="text-align:center;padding:40px">暂无用户</td></tr>`;
     return;
   }
   rows.innerHTML = res.list.map((u) => {
@@ -30,7 +30,8 @@ async function load() {
       <td>${isAdmin ? `<span class="badge" style="background:var(--accent-soft);color:var(--accent)">管理员</span>` : `<span class="badge off">普通用户</span>`}</td>
       <td>${u.status === "active" ? `<span class="badge ok"><span class="dot"></span>正常</span>` : `<span class="badge warn"><span class="dot"></span>已封禁</span>`}</td>
       <td class="num">${u.projects}</td>
-      <td class="num">${u.cards}</td>
+      <td class="num">${u.contents}</td>
+      <td class="num">${u.codes}</td>
       <td class="num">${u.claimed}</td>
       <td class="num weak" style="font-size:12px">${fullTime(u.created_at)}</td>
       <td style="text-align:right;white-space:nowrap">
@@ -65,7 +66,7 @@ async function action(u, act) {
     await update(u.id, { password: pwd });
     toast("密码已重置");
   } else if (act === "del") {
-    if (!confirm(`确认删除用户「${u.username}」？其所有项目、卡密与领取记录将一并删除，不可恢复。`)) return;
+    if (!confirm(`确认删除用户「${u.username}」？其所有项目、分发内容、领取 CDK 与领取记录将一并删除，不可恢复。`)) return;
     try { await api(`/api/users/${u.id}`, { method: "DELETE" }); toast("用户已删除"); }
     catch (e) { toast(e.message, "err"); }
   }

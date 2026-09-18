@@ -7,27 +7,31 @@ export function usersRouter() {
   const r = Router();
   r.use(requireAuth, requireAdmin);
 
-  // 用户列表（含项目/卡密/领取统计）
+  // 用户列表（含项目/内容/CDK/领取统计）
   r.get("/", (_req, res) => {
     const db = getDb();
     const rows = db.prepare(`SELECT id, username, role, status, created_at FROM users ORDER BY id`).all();
-    const stat = db.prepare(`
-      SELECT b.owner_id,
-             COUNT(DISTINCT b.id) AS projects,
-             COUNT(cc.id) AS cards,
-             COUNT(cl.id) AS claimed
-      FROM batches b
-      LEFT JOIN cards cc ON cc.batch_id = b.id AND cc.status = 'claimed'
-      LEFT JOIN claims cl ON cl.batch_id = b.id
-      GROUP BY b.owner_id
-    `).all();
-    const map = Object.fromEntries(stat.map((s) => [s.owner_id, s]));
+    const groupCount = (sql) =>
+      Object.fromEntries(db.prepare(sql).all().map((x) => [x.owner_id, x.c]));
+    const projects = groupCount(`SELECT owner_id, COUNT(*) AS c FROM batches GROUP BY owner_id`);
+    const contents = groupCount(
+      `SELECT b.owner_id AS owner_id, COUNT(*) AS c FROM contents ct JOIN batches b ON b.id = ct.batch_id GROUP BY b.owner_id`
+    );
+    const codes = groupCount(
+      `SELECT b.owner_id AS owner_id, COUNT(*) AS c FROM claim_codes cc JOIN batches b ON b.id = cc.batch_id GROUP BY b.owner_id`
+    );
+    const used = groupCount(
+      `SELECT b.owner_id AS owner_id,
+              SUM(CASE WHEN cc.status = 'claimed' THEN 1 ELSE 0 END) AS c
+       FROM claim_codes cc JOIN batches b ON b.id = cc.batch_id GROUP BY b.owner_id`
+    );
     const list = rows.map((u) => ({
       ...u,
       name: displayName(u),
-      projects: map[u.id]?.projects || 0,
-      cards: map[u.id]?.cards || 0,
-      claimed: map[u.id]?.claimed || 0,
+      projects: projects[u.id] || 0,
+      contents: contents[u.id] || 0,
+      codes: codes[u.id] || 0,
+      claimed: used[u.id] || 0,
     }));
     res.json({ ok: true, list });
   });
@@ -79,7 +83,7 @@ export function usersRouter() {
     res.json({ ok: true, user: { ...nu, name: nu.username } });
   });
 
-  // 删除用户（连带其项目/卡密/领取记录）
+  // 删除用户（连带其项目/内容/CDK/领取记录）
   r.delete("/:id", (req, res) => {
     const db = getDb();
     const id = Number(req.params.id);
@@ -91,7 +95,8 @@ export function usersRouter() {
       const batchIds = db.prepare(`SELECT id FROM batches WHERE owner_id = ?`).all(id).map((b) => b.id);
       for (const bid of batchIds) {
         db.prepare(`DELETE FROM claims WHERE batch_id = ?`).run(bid);
-        db.prepare(`DELETE FROM cards WHERE batch_id = ?`).run(bid);
+        db.prepare(`DELETE FROM claim_codes WHERE batch_id = ?`).run(bid);
+        db.prepare(`DELETE FROM contents WHERE batch_id = ?`).run(bid);
       }
       db.prepare(`DELETE FROM batches WHERE owner_id = ?`).run(id);
       db.prepare(`DELETE FROM users WHERE id = ?`).run(id);
