@@ -7,6 +7,16 @@ function fullTime(s) { if (!s) return "—"; const d = new Date(String(s).replac
 const TYPE_LABEL = { code: "兑换码", link: "链接", text: "文本" };
 const MAX_GENERATE = 5000;
 
+/** CDK 打码显示：保留前 4 后 4，中间用 **** 代替（分组展示，与 code_display 风格一致） */
+function maskCode(raw) {
+  const s = String(raw || "").replace(/[\s-]/g, "").toUpperCase();
+  if (!s) return "";
+  if (s.length <= 8) return s; // 太短没有遮的意义
+  const groups = Math.ceil(s.length / 4);
+  const mid = Array(Math.max(groups - 2, 1)).fill("****").join("-");
+  return `${s.slice(0, 4)}-${mid}-${s.slice(-4)}`;
+}
+
 let allBatches = [];
 let projectKeyword = "";
 
@@ -333,19 +343,22 @@ async function openBatchModal(b) {
     if (!host) return;
     const start = contentState.offset;
     const filtering = Boolean(contentState.keyword) || contentState.status !== "all";
-    const rows = res.list.map((c, i) => `
+    const rows = res.list.map((c, i) => {
+      // 关联 CDK：已发放显示领取者用的码，未发放且绑定模式显示预绑定的码
+      const related = c.claim_code || c.bound_code || "";
+      return `
       <tr>
         <td class="num weak">${start + i + 1}</td>
         <td><span class="tag">${esc(TYPE_LABEL[c.type] || c.type)}</span></td>
         <td class="payload limit" title="${esc(c.payload)}">${esc(c.payload)}</td>
         <td>${c.status === "used" ? `<span class="badge off">已发放</span>` : `<span class="badge ok">未发放</span>`}</td>
-        <td class="payload weak limit-sm">${c.bound_code ? esc(c.bound_code) : "—"}</td>
-        <td class="payload weak limit-sm">${c.claim_code ? esc(c.claim_code) : "—"}</td>
+        <td class="payload weak limit-sm" title="${esc(related)}">${related ? esc(maskCode(related)) : `<span class="weak">—</span>`}</td>
         <td class="col-actions">
           ${copyBtn(c.payload)}
           ${c.status === "used" ? "" : `<button class="btn sm danger" data-del-content="${c.id}">删除</button>`}
         </td>
-      </tr>`).join("") || `<tr><td colspan="7" class="weak" style="text-align:center;padding:24px">${
+      </tr>`;
+    }).join("") || `<tr><td colspan="6" class="weak" style="text-align:center;padding:24px">${
         filtering ? "没有匹配的内容，试试清空搜索条件" : "暂无内容"
       }</td></tr>`;
     host.innerHTML = `
@@ -355,7 +368,12 @@ async function openBatchModal(b) {
           : `内容共 ${fmt(res.total)} 条${res.total > res.list.length + start ? `，已显示 ${fmt(res.list.length + start)} 条` : ""}`}
       </div>
       <div class="table-wrap" style="max-height:300px;overflow:auto;border:1px solid var(--border);border-radius:10px">
-        <table class="tbl"><thead><tr><th>#</th><th>类型</th><th>内容</th><th>状态</th><th>绑定 CDK</th><th>领取 CDK</th><th style="text-align:right">操作</th></tr></thead><tbody>${rows}</tbody></table>
+        <table class="tbl"><thead><tr><th>#</th><th>类型</th><th>内容</th><th>状态</th><th>关联 CDK</th><th style="text-align:right">操作</th></tr></thead><tbody>${rows}</tbody></table>
+      </div>
+      <div class="weak" style="font-size:12px;margin-top:8px">
+        ${b.bind_mode === "bound"
+          ? "一码一内容绑定：未发放的内容会显示预先绑定的 CDK（打码显示，悬停看全码）。"
+          : "动态发放：内容不预绑定 CDK，用户领取时按顺序发放；已发放的内容显示领取者使用的 CDK。"}
       </div>`;
     bindCopy(host);
     if (res.hasMore) {
