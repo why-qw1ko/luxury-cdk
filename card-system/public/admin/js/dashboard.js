@@ -126,7 +126,7 @@ function renderStats(s) {
   document.getElementById("statCards").innerHTML = items.map((it) => `
     <div class="card stat-card fx-elastic">
       <div class="stat-top">
-        <div class="stat-icon">${it.icon}</div>
+        <div class="stat-icon fx-breathe">${it.icon}</div>
         ${it.pillC != null && it.pillArr ? pill(it.pillC) : ""}
       </div>
       <div class="stat-label">${it.label}</div>

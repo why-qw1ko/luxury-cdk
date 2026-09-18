@@ -87,15 +87,15 @@ input, textarea, select { font-family: inherit; color-scheme: inherit; }
 ::selection { background: var(--accent-soft); }
 
 /* ---------- 页面入场 ---------- */
-.page { animation: pageIn var(--tr-mid) both; }
-@keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.page { animation: pageIn 0.34s ease both; }
+@keyframes pageIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
-/* 卡片级联入场：同一 grid 内的卡片依次浮现 */
-@keyframes cardIn { from { opacity: 0; transform: translateY(10px) scale(0.99); } to { opacity: 1; transform: none; } }
-.grid > .card, .grid-stats > .card { animation: cardIn 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
-.grid > .card:nth-child(2), .grid-stats > .card:nth-child(2) { animation-delay: 0.06s; }
-.grid > .card:nth-child(3), .grid-stats > .card:nth-child(3) { animation-delay: 0.12s; }
-.grid > .card:nth-child(n+4) { animation-delay: 0.18s; }
+/* 卡片级联入场：位移更大 + 弹性回弹缓动 + 错开延迟更明显 */
+@keyframes cardIn { from { opacity: 0; transform: translateY(22px) scale(0.96); } to { opacity: 1; transform: none; } }
+.grid > .card, .grid-stats > .card { animation: cardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.grid > .card:nth-child(2), .grid-stats > .card:nth-child(2) { animation-delay: 0.09s; }
+.grid > .card:nth-child(3), .grid-stats > .card:nth-child(3) { animation-delay: 0.17s; }
+.grid > .card:nth-child(n+4) { animation-delay: 0.25s; }
 
 /* 表格行级联入场：前 12 行逐行浮现，之后统一延迟 */
 .tbl tbody tr:nth-child(1) { animation-delay: 0s; }
