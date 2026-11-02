@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>领取记录 · 卡密发放后台</title>
+  <script src="/js/theme.js"></script>
+  <link rel="stylesheet" href="/css/app.css"/>
+  <link rel="stylesheet" href="/css/interactions.css"/>
+</head>
+<body data-page="received">
+  <div class="page">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title" id="pageTitle">管理人员，管理员</h1>
+        <p class="page-sub">全部项目的领取记录（领取 CDK 与对应发放内容）</p>
+      </div>
+      <div class="row">
+        <input class="input" id="searchInput" placeholder="搜索 CDK / 内容 / 领取IP" style="width:240px"/>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="row between" style="margin-bottom:12px;gap:12px;flex-wrap:wrap">
+        <div class="row" id="filterRow" style="gap:8px;flex-wrap:wrap"></div>
+        <span class="weak" id="totalLabel" style="font-size:12.5px;min-width:0;overflow-wrap:anywhere"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>ID</th><th>项目</th><th>领取 CDK</th><th>类型</th><th>发放内容</th><th>领取IP</th><th>领取时间</th><th style="text-align:right">操作</th></tr></thead>
+          <tbody id="claimRows"><tr><td colspan="8" class="weak" style="text-align:center">加载中…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="dock"></div>
+  <script src="/js/interactions.js"></script>
+  <script src="/admin/js/common.js"></script>
+  <script src="/js/ui.js"></script>
+  <script src="/admin/js/received.js"></script>
+</body>
+</html>

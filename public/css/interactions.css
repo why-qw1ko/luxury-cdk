@@ -1,0 +1,52 @@
+/* 容器圆角 = 内部控件圆角 + 实际内边距。 */
+.card { border-radius: calc(var(--radius-sm) + var(--pad)); }
+.card .card, .modal .card { box-shadow: none; background: var(--soft-bg); }
+.card .btn:not(.primary):not(.danger) { background: transparent; }
+.card .btn:not(.primary):not(.danger):hover { background: var(--hover-bg); }
+.payload-box { border-radius: calc(var(--radius-sm) + 12px); }
+.row { min-width: 0; }
+[hidden] { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* 原内容保留宽度，对勾覆盖显示，反复复制会重新计时。 */
+.btn.is-copied { position: relative; color: transparent !important; }
+.btn.is-copied > :not(.copy-feedback) { visibility: hidden; }
+.copy-feedback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--success); }
+.primary .copy-feedback { color: #fff; }
+.copy-feedback svg { width: 18px; height: 18px; }
+
+.collapse { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 200ms ease; }
+.collapse.expanded { grid-template-rows: 1fr; }
+.collapse-inner { min-height: 0; overflow: hidden; }
+
+/* 小数量数据选项直接平铺。命令继续使用表格里的文字按钮。 */
+.choice-group { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; max-width: 100%; padding: 4px; background: var(--soft-bg); border-radius: 14px; }
+.choice-option { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 10px; cursor: pointer; color: var(--text-2); font-size: 12px; overflow-wrap: anywhere; }
+.choice-option:has(:checked) { background: var(--accent-soft); color: var(--accent); }
+.choice-option:hover { background: var(--hover-bg); }
+.choice-option:focus-within { box-shadow: 0 0 0 2px var(--ring-inner), 0 0 0 5px var(--ring); }
+.choice-option input { margin: 0; flex-shrink: 0; }
+.select-control { min-width: 0; max-width: 100%; width: 220px; }
+.select-trigger { display: block; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 30px; position: relative; cursor: pointer; }
+.select-trigger::after { content: "⌄"; position: absolute; right: 12px; }
+.select-panel { position: fixed; display: flex; flex-direction: column; z-index: 95; max-height: 264px; padding: 8px; gap: 8px; background: var(--soft-bg); border-radius: 18px; box-shadow: inset 0 0 0 1px var(--border-2), var(--shadow-lg); overflow: hidden; animation: selectDown 120ms ease-out; }
+.select-panel.opens-up { animation-name: selectUp; }
+.select-search { flex-shrink: 0; font-size: 13px; background: var(--hover-bg); }
+.select-options { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.select-option { display: block; width: 100%; border: none; border-radius: 10px; padding: 9px 10px; text-align: left; background: transparent; color: var(--text); font-size: 13px; overflow-wrap: anywhere; }
+.select-option:hover, .select-option:focus-visible { background: var(--hover-bg); outline: none; box-shadow: inset 0 0 0 2px var(--ring-inner); }
+.select-option[aria-selected="true"] { background: var(--accent-soft); color: var(--accent); }
+.select-option:disabled { opacity: .5; cursor: not-allowed; }
+.select-empty { padding: 12px; color: var(--text-2); }
+@keyframes selectDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@keyframes selectUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (max-width: 480px) {
+  .choice-group, .select-control { width: 100%; }
+  .choice-option { flex: 1 1 auto; }
+  .dock { width: calc(100% - 16px); max-width: 410px; gap: 2px; padding: 6px; }
+  .dock-btn { flex: 1 1 0; min-width: 0; width: 36px; height: 36px; }
+  .dock-divider { flex-shrink: 0; margin: 0 2px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .collapse, .select-panel { transition: none; animation: none; }
+}
